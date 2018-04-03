@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017 Dell Inc.
+ * Copyright 2018 Dell Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -12,13 +12,43 @@
  * the License.
  *
  * @microservice: core-data-go library
- * @author: Ryan Comer, Dell
+ * @author: Trevor Conn, Dell
  * @version: 0.5.0
  *******************************************************************************/
-package data
 
-//var configuration ConfigurationStruct = ConfigurationStruct{} //  Needs to be initialized before used
+package routers
 
-var (
-	COREDATASERVICENAME = "core-data"
+import (
+	"github.com/edgexfoundry/edgex-go/routing"
+	"github.com/gorilla/mux"
+	"fmt"
 )
+
+type routerType int
+
+const (
+	Gorilla routerType = iota
+	Opentrace
+)
+
+type RouterTyper interface {
+	Type() routerType
+}
+
+func (t routerType) Type() routerType {
+	return t
+}
+
+func NewRouter(t RouterTyper) (routing.RestRouter, error) {
+	switch t {
+	case Gorilla:
+		g := &gorillaRouter{mux.NewRouter() }
+		return g, nil
+		break;
+	case Opentrace:
+		return nil, fmt.Errorf("opentrace not yet supported")
+		break;
+	}
+	//effectively default case
+	return nil, fmt.Errorf("unrecognized router type")
+}

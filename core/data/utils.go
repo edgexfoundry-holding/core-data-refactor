@@ -23,8 +23,29 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/edgexfoundry/edgex-go/core/data/clients"
+	"github.com/edgexfoundry/edgex-go/core/data/log"
+	"github.com/edgexfoundry/edgex-go/core/data/config"
+	"github.com/edgexfoundry/edgex-go/core/data/messaging"
+	"github.com/edgexfoundry/edgex-go/support/logging-client"
 )
 
+func getDatabase() clients.DBClient {
+	return clients.CurrentClient
+}
+
+func getLogger() logger.LoggingClient {
+	return log.Logger
+}
+
+func getConfiguration() *config.ConfigurationStruct {
+	return config.Configuration
+}
+
+func getMQPublisher() messaging.EventPublisher {
+	return messaging.CurrentPublisher
+}
 
 // Helper function for encoding things for returning from REST calls
 func encode(i interface{}, w http.ResponseWriter) {
@@ -34,7 +55,7 @@ func encode(i interface{}, w http.ResponseWriter) {
 	err := enc.Encode(i)
 	// Problems encoding
 	if err != nil {
-		loggingClient.Error("Error encoding the data: " + err.Error())
+		getLogger().Error("Error encoding the data: " + err.Error())
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
@@ -59,6 +80,6 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err := w.Write([]byte("pong"))
 	if err != nil {
-		loggingClient.Error("Error writing pong: " + err.Error())
+		getLogger().Error("Error writing pong: " + err.Error())
 	}
 }

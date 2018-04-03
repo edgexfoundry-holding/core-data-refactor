@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2017 Dell Inc.
+ * Copyright 2018 Dell Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -12,13 +12,15 @@
  * the License.
  *
  * @microservice: core-data-go library
- * @author: Ryan Comer, Dell
+ * @author: Trevor Conn, Dell
  * @version: 0.5.0
  *******************************************************************************/
-package data
+package aggregates
 
-//var configuration ConfigurationStruct = ConfigurationStruct{} //  Needs to be initialized before used
+type DeviceLastReported struct {
+	DeviceName string
+}
 
-var (
-	COREDATASERVICENAME = "core-data"
-)
+type DeviceServiceLastReported struct {
+	DeviceName string
+}

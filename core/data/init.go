@@ -22,20 +22,19 @@ import (
 	"strings"
 
 	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients"
+	"github.com/edgexfoundry/edgex-go/core/data/config"
 	"github.com/edgexfoundry/edgex-go/core/data/clients"
+	"github.com/edgexfoundry/edgex-go/core/data/log"
 	"github.com/edgexfoundry/edgex-go/core/data/messaging"
 	consulclient "github.com/edgexfoundry/edgex-go/support/consul-client"
 	"github.com/edgexfoundry/edgex-go/support/logging-client"
 )
 
 // Global variables
-var dbc clients.DBClient
-var loggingClient logger.LoggingClient
-var ep *messaging.EventPublisher
 var mdc metadataclients.DeviceClient
 var msc metadataclients.ServiceClient
 
-func ConnectToConsul(conf ConfigurationStruct) error {
+func ConnectToConsul(conf config.ConfigurationStruct) error {
 
 	// Initialize service on Consul
 	err := consulclient.ConsulInit(consulclient.ConsulConfig{
@@ -59,15 +58,15 @@ func ConnectToConsul(conf ConfigurationStruct) error {
 	return nil
 }
 
-func Init(conf ConfigurationStruct, l logger.LoggingClient) error {
-	loggingClient = l
-	configuration = conf
+func Init(conf *config.ConfigurationStruct, l logger.LoggingClient) error {
+	log.Logger = l
+	config.Configuration = conf
 	//TODO: The above two are set due to global scope throughout the package. How can this be eliminated / refactored?
 
 	var err error
 	
 	// Create a database client
-	dbc, err = clients.NewDBClient(clients.DBConfiguration{
+	_, err = clients.NewDBClient(clients.DBConfiguration{
 		DbType:       clients.MONGO,
 		Host:         conf.MongoDBHost,
 		Port:         conf.MongoDBPort,
@@ -85,9 +84,7 @@ func Init(conf ConfigurationStruct, l logger.LoggingClient) error {
 	msc = metadataclients.NewServiceClient(conf.MetaDeviceServiceURL)
 
 	// Create the event publisher
-	ep = messaging.NewZeroMQPublisher(messaging.ZeroMQConfiguration{
-		AddressPort: conf.ZeroMQAddressPort,
-	})
+	_ = messaging.NewMQPublisher(conf.ZeroMQAddressPort)
 
 	return nil
 }

@@ -20,6 +20,7 @@ package clients
 import (
 	"errors"
 	"fmt"
+	"github.com/edgexfoundry/edgex-go/core/domain/errs"
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -134,7 +135,7 @@ func (mc *MongoClient) UpdateEvent(e models.Event) error {
 
 	err := s.DB(mc.Database.Name).C(EVENTS_COLLECTION).UpdateId(me.ID, me)
 	if err == mgo.ErrNotFound {
-		return ErrNotFound
+		return errs.ErrNotFound
 	}
 
 	return err
@@ -292,7 +293,7 @@ func (mc *MongoClient) getEvent(q bson.M) (models.Event, error) {
 	var me MongoEvent
 	err := s.DB(mc.Database.Name).C(EVENTS_COLLECTION).Find(q).One(&me)
 	if err == mgo.ErrNotFound {
-		return me.Event, ErrNotFound
+		return me.Event, errs.ErrNotFound
 	}
 
 	return me.Event, err
@@ -331,7 +332,7 @@ func (mc *MongoClient) UpdateReading(r models.Reading) error {
 	// Update the reading
 	err := s.DB(mc.Database.Name).C(READINGS_COLLECTION).UpdateId(r.Id, r)
 	if err == mgo.ErrNotFound {
-		return ErrNotFound
+		return errs.ErrNotFound
 	}
 
 	return err
@@ -438,7 +439,7 @@ func (mc *MongoClient) getReading(q bson.M) (models.Reading, error) {
 	var res models.Reading
 	err := s.DB(mc.Database.Name).C(READINGS_COLLECTION).Find(q).One(&res)
 	if err == mgo.ErrNotFound {
-		return res, ErrNotFound
+		return res, errs.ErrNotFound
 	}
 	return res, err
 }
@@ -464,7 +465,7 @@ func (mc *MongoClient) AddValueDescriptor(v models.ValueDescriptor) (bson.Object
 
 	// Duplicate name
 	if info.UpsertedId == nil {
-		return v.Id, ErrNotUnique
+		return v.Id, errs.ErrNotUnique
 	}
 
 	// Set ID	
@@ -489,14 +490,14 @@ func (mc *MongoClient) UpdateValueDescriptor(v models.ValueDescriptor) error {
 
 	// See if the name is unique if it changed
 	vd, err := mc.getValueDescriptor(bson.M{"name": v.Name})
-	if err != ErrNotFound {
+	if err != errs.ErrNotFound {
 		if err != nil {
 			return err
 		}
 
 		// IDs are different -> name not unique
 		if vd.Id != v.Id {
-			return ErrNotUnique
+			return errs.ErrNotUnique
 		}
 	}
 
@@ -504,7 +505,7 @@ func (mc *MongoClient) UpdateValueDescriptor(v models.ValueDescriptor) error {
 
 	err = s.DB(mc.Database.Name).C(VALUE_DESCRIPTOR_COLLECTION).UpdateId(v.Id, v)
 	if err == mgo.ErrNotFound {
-		return ErrNotFound
+		return errs.ErrNotFound
 	}
 	return err
 }
@@ -621,7 +622,7 @@ func (mc *MongoClient) getValueDescriptor(q bson.M) (models.ValueDescriptor, err
 	var v models.ValueDescriptor
 	err := s.DB(mc.Database.Name).C(VALUE_DESCRIPTOR_COLLECTION).Find(q).One(&v)
 	if err == mgo.ErrNotFound {
-		return v, ErrNotFound
+		return v, errs.ErrNotFound
 	}
 
 	return v, err
@@ -639,7 +640,7 @@ func (mc *MongoClient) deleteById(id string, col string) error {
 
 	err := s.DB(mc.Database.Name).C(col).RemoveId(bson.ObjectIdHex(id))
 	if err == mgo.ErrNotFound {
-		return ErrNotFound
+		return errs.ErrNotFound
 	}
 	return err
 }

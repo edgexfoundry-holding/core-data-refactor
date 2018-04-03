@@ -5,14 +5,15 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-package data
+package events
 
 import (
 	"encoding/json"
 	"fmt"
 	"strconv"
 
-	models "github.com/edgexfoundry/edgex-go/core/domain/models"
+	"github.com/edgexfoundry/edgex-go/core/data/clients"
+	"github.com/edgexfoundry/edgex-go/core/domain/models"
 )
 
 func isValidValueDescriptor_private(vd models.ValueDescriptor, ev models.Event) (bool, error) {
@@ -33,7 +34,7 @@ func isValidValueDescriptor_private(vd models.ValueDescriptor, ev models.Event) 
 }
 
 func isValidValueDescriptor(reading models.Reading, ev models.Event) (bool, error) {
-	vd, _ := getDatabase().ValueDescriptorByName(reading.Name)
+	vd, _ := clients.CurrentClient.ValueDescriptorByName(reading.Name)
 	return isValidValueDescriptor_private(vd, ev)
 }
 

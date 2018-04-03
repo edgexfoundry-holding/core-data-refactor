@@ -68,7 +68,7 @@ func NewClient(owningServiceName string, isRemote bool, logTarget string) Loggin
 	lc.fileLogger = &log.Logger{}
 	lc.fileLogger.SetFlags(log.Ldate | log.Ltime)
 
-	return lc
+	return &lc
 }
 
 // Send the log out as a REST request

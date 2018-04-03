@@ -28,18 +28,25 @@ const (
 	MQTT
 )
 
-// Publisher to send events to northbound services
-type EventPublisher struct {
-	protocol int
-	zmq      zeroMQEventPublisher
+type EventPublisher interface {
+	SendEventMessage(e models.Event) error
 }
 
-func NewZeroMQPublisher(configuration ZeroMQConfiguration) *EventPublisher {
-	return &EventPublisher{protocol: ZEROMQ, zmq: newZeroMQEventPublisher(configuration)}
+// Publisher to send events to northbound services
+type EdgeXEventPublisher struct {
+	protocol int
+	zmq      MQClient
+}
+
+func NewMQPublisher(addrPort string) EventPublisher {
+	conf := zeroMQConfiguration{ AddressPort:addrPort }
+	p := &EdgeXEventPublisher{protocol: ZEROMQ, zmq: newZeroMQEventPublisher(conf)}
+	CurrentPublisher = p
+	return p
 }
 
 // Send the event
-func (ep *EventPublisher) SendEventMessage(e models.Event) error {
+func (ep *EdgeXEventPublisher) SendEventMessage(e models.Event) error {
 	// Switch based on the protocol you're using
 	switch ep.protocol {
 	case ZEROMQ:
@@ -48,3 +55,5 @@ func (ep *EventPublisher) SendEventMessage(e models.Event) error {
 		return errors.UnsupportedPublisher{}
 	}
 }
+
+var CurrentPublisher MQClient

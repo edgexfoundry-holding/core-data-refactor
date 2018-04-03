@@ -26,12 +26,14 @@ import (
 
 	"github.com/edgexfoundry/edgex-go"
 	"github.com/edgexfoundry/edgex-go/core/data"
+	localcfg "github.com/edgexfoundry/edgex-go/core/data/config"
+	"github.com/edgexfoundry/edgex-go/core/data/routers"
 	"github.com/edgexfoundry/edgex-go/pkg/config"
 	"github.com/edgexfoundry/edgex-go/pkg/heartbeat"
 	"github.com/edgexfoundry/edgex-go/support/logging-client"
 )
 
-var loggingClient logger.LoggingClient
+//var loggingClient logger.LoggingClient
 
 func main() {
 	start := time.Now()
@@ -42,7 +44,7 @@ func main() {
 	flag.Parse()
 
 	//Read Configuration
-	configuration := &data.ConfigurationStruct{}
+	configuration := &localcfg.ConfigurationStruct{}
 	err := config.LoadFromFile(*useProfile, configuration)
 	if err != nil {
 		logBeforeTermination(err)
@@ -64,18 +66,24 @@ func main() {
 
 	// Setup Logging
 	logTarget := setLoggingTarget(*configuration)
-	loggingClient = logger.NewClient(configuration.ApplicationName, configuration.EnableRemoteLogging, logTarget)
+	loggingClient := logger.NewClient(configuration.ApplicationName, configuration.EnableRemoteLogging, logTarget)
 
 	loggingClient.Info(consulMsg)
 	loggingClient.Info(fmt.Sprintf("Starting %s %s ", data.COREDATASERVICENAME, edgex.Version))
 
-	err = data.Init(*configuration, loggingClient)
+	err = data.Init(configuration, loggingClient)
 	if err != nil {
 		loggingClient.Error(fmt.Sprintf("call to init() failed: %v", err.Error()))
 		return
 	}
 
-	r := data.LoadRestRoutes()
+	r, err := routers.NewRouter(routers.Gorilla)
+	if err != nil {
+		loggingClient.Error(fmt.Sprintf("could not initialize router: %v", err.Error()))
+		return
+	}
+
+	srv := r.LoadRoutes()
 	http.TimeoutHandler(nil, time.Millisecond*time.Duration(configuration.ServiceTimeout), "Request timed out")
 	loggingClient.Info(configuration.AppOpenMsg, "")
 
@@ -84,15 +92,15 @@ func main() {
 	// Time it took to start service
 	loggingClient.Info("Service started in: "+time.Since(start).String(), "")
 	loggingClient.Info("Listening on port: " + strconv.Itoa(configuration.ServicePort))
-	loggingClient.Error(http.ListenAndServe(":"+strconv.Itoa(configuration.ServicePort), r).Error())
+	loggingClient.Error(http.ListenAndServe(":"+strconv.Itoa(configuration.ServicePort), srv).Error())
 }
 
 func logBeforeTermination(err error) {
-	loggingClient = logger.NewClient(data.COREDATASERVICENAME, false, "")
+	loggingClient := logger.NewClient(data.COREDATASERVICENAME, false, "")
 	loggingClient.Error(err.Error())
 }
 
-func setLoggingTarget(conf data.ConfigurationStruct) string {
+func setLoggingTarget(conf localcfg.ConfigurationStruct) string {
 	logTarget := conf.LoggingRemoteURL
 	if !conf.EnableRemoteLogging {
 		return conf.LoggingFile

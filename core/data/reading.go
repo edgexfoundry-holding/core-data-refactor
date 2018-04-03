@@ -24,7 +24,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/edgexfoundry/edgex-go/core/data/clients"
+	"github.com/edgexfoundry/edgex-go/core/domain/errs"
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 	"github.com/gorilla/mux"
 )
@@ -37,7 +37,7 @@ func checkDevice(device string) bool {
 		// Then check by ID
 		_, err = mdc.Device(device)
 		if err != nil {
-			loggingClient.Error("Can't find device: " + device)
+			getLogger().Error("Can't find device: " + device)
 			return false
 		}
 		return true
@@ -53,17 +53,17 @@ func readingHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		r, err := dbc.Readings()
+		r, err := getDatabase().Readings()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 
 		// Check max limit
-		if len(r) > configuration.ReadMaxLimit {
+		if len(r) > getConfiguration().ReadMaxLimit {
 			http.Error(w, maxExceededString, http.StatusRequestEntityTooLarge)
-			loggingClient.Error(maxExceededString)
+			getLogger().Error(maxExceededString)
 			return
 		}
 
@@ -76,19 +76,19 @@ func readingHandler(w http.ResponseWriter, r *http.Request) {
 		// Problem decoding
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
-			loggingClient.Error("Error decoding the reading: " + err.Error())
+			getLogger().Error("Error decoding the reading: " + err.Error())
 			return
 		}
 
 		// Check the value descriptor
-		_, err = dbc.ValueDescriptorByName(reading.Name)
+		_, err = getDatabase().ValueDescriptorByName(reading.Name)
 		if err != nil {
-			if err == clients.ErrNotFound {
+			if err == errs.ErrNotFound {
 				http.Error(w, "Value descriptor not found for reading", http.StatusConflict)
 			} else {
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
 			}
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 
@@ -101,7 +101,7 @@ func readingHandler(w http.ResponseWriter, r *http.Request) {
 				d, err = mdc.Device(reading.Device)
 				if err != nil {
 					err = errors.New("Device not found for reading")
-					loggingClient.Error(err.Error(), "")
+					getLogger().Error(err.Error(), "")
 					http.Error(w, err.Error(), http.StatusConflict)
 					return
 				}
@@ -109,11 +109,11 @@ func readingHandler(w http.ResponseWriter, r *http.Request) {
 			reading.Device = d.Name
 		}
 
-		if configuration.PersistData {
-			id, err := dbc.AddReading(reading)
+		if getConfiguration().PersistData {
+			id, err := getDatabase().AddReading(reading)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
-				loggingClient.Error(err.Error())
+				getLogger().Error(err.Error())
 				return
 			}
 
@@ -131,19 +131,19 @@ func readingHandler(w http.ResponseWriter, r *http.Request) {
 		// Problem decoding
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
-			loggingClient.Error("Error decoding the reading: " + err.Error())
+			getLogger().Error("Error decoding the reading: " + err.Error())
 			return
 		}
 
 		// Check if the reading exists
-		to, err := dbc.ReadingById(from.Id.Hex())
+		to, err := getDatabase().ReadingById(from.Id.Hex())
 		if err != nil {
-			if err == clients.ErrNotFound {
+			if err == errs.ErrNotFound {
 				http.Error(w, "Reading not found", http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
 			}
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 
@@ -152,14 +152,14 @@ func readingHandler(w http.ResponseWriter, r *http.Request) {
 			to.Value = from.Value
 		}
 		if from.Name != "" {
-			_, err := dbc.ValueDescriptorByName(from.Name)
+			_, err := getDatabase().ValueDescriptorByName(from.Name)
 			if err != nil {
-				if err == clients.ErrNotFound {
+				if err == errs.ErrNotFound {
 					http.Error(w, "Value descriptor not found for reading", http.StatusConflict)
 				} else {
 					http.Error(w, err.Error(), http.StatusServiceUnavailable)
 				}
-				loggingClient.Error(err.Error())
+				getLogger().Error(err.Error())
 				return
 			}
 			to.Name = from.Name
@@ -168,10 +168,10 @@ func readingHandler(w http.ResponseWriter, r *http.Request) {
 			to.Origin = from.Origin
 		}
 
-		err = dbc.UpdateReading(to)
+		err = getDatabase().UpdateReading(to)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 
@@ -193,14 +193,14 @@ func getReadingByIdHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		reading, err := dbc.ReadingById(id)
+		reading, err := getDatabase().ReadingById(id)
 		if err != nil {
-			if err == clients.ErrNotFound {
+			if err == errs.ErrNotFound {
 				http.Error(w, "Reading not found", http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
 			}
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 
@@ -215,17 +215,17 @@ func readingCountHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		count, err := dbc.ReadingCount()
+		count, err := getDatabase().ReadingCount()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write([]byte(strconv.Itoa(count)))
 		if err != nil {
-			loggingClient.Error(err.Error(), "")
+			getLogger().Error(err.Error(), "")
 		}
 	}
 }
@@ -241,21 +241,21 @@ func deleteReadingByIdHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodDelete:
 		// Check if the reading exists
-		reading, err := dbc.ReadingById(id)
+		reading, err := getDatabase().ReadingById(id)
 		if err != nil {
-			if err == clients.ErrNotFound {
+			if err == errs.ErrNotFound {
 				http.Error(w, "Reading not found", http.StatusNotFound)
 			} else {
 				http.Error(w, err.Error(), http.StatusServiceUnavailable)
 			}
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 
-		err = dbc.DeleteReadingById(reading.Id.Hex())
+		err = getDatabase().DeleteReadingById(reading.Id.Hex())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -277,22 +277,22 @@ func readingByDeviceHandler(w http.ResponseWriter, r *http.Request) {
 	// Problems converting limit to int
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error converting the limit to an integer: " + err.Error())
+		getLogger().Error("Error converting the limit to an integer: " + err.Error())
 		return
 	}
 	deviceId, err := url.QueryUnescape(vars["deviceId"])
 	// Problems unescaping URL
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error unescaping the device ID: " + err.Error())
+		getLogger().Error("Error unescaping the device ID: " + err.Error())
 		return
 	}
 
 	switch r.Method {
 	case http.MethodGet:
-		if limit > configuration.ReadMaxLimit {
+		if limit > getConfiguration().ReadMaxLimit {
 			http.Error(w, maxExceededString, http.StatusRequestEntityTooLarge)
-			loggingClient.Error(maxExceededString)
+			getLogger().Error(maxExceededString)
 			return
 		}
 
@@ -304,18 +304,18 @@ func readingByDeviceHandler(w http.ResponseWriter, r *http.Request) {
 			// Then check by ID
 			d, err = mdc.Device(deviceId)
 			if err != nil {
-				if configuration.MetaDataCheck {
+				if getConfiguration().MetaDataCheck {
 					http.Error(w, "Device doesn't exist for the reading", http.StatusNotFound)
-					loggingClient.Error("Error getting readings for a device: The device doesn't exist")
+					getLogger().Error("Error getting readings for a device: The device doesn't exist")
 					return
 				}
 			}
 		}
 
-		readings, err := dbc.ReadingsByDevice(d.Name, limit)
+		readings, err := getDatabase().ReadingsByDevice(d.Name, limit)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 
@@ -334,38 +334,38 @@ func readingbyValueDescriptorHandler(w http.ResponseWriter, r *http.Request) {
 	// Problems with unescaping URL
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error unescaping value descriptor name: " + err.Error())
+		getLogger().Error("Error unescaping value descriptor name: " + err.Error())
 		return
 	}
 	limit, err := strconv.Atoi(vars["limit"])
 	// Problems converting limit to int
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error converting the limit to an integer: " + err.Error())
+		getLogger().Error("Error converting the limit to an integer: " + err.Error())
 		return
 	}
 
 	// Check for value descriptor
-	_, err = dbc.ValueDescriptorByName(name)
+	_, err = getDatabase().ValueDescriptorByName(name)
 	if err != nil {
-		if err == clients.ErrNotFound {
-			loggingClient.Error("Value Descriptor not found for Reading", "")
+		if err == errs.ErrNotFound {
+			getLogger().Error("Value Descriptor not found for Reading", "")
 			http.Error(w, "Value Descriptor not found for Reading", http.StatusNotFound)
 			return
 		}
 	}
 
 	// Limit is too large
-	if limit > configuration.ReadMaxLimit {
+	if limit > getConfiguration().ReadMaxLimit {
 		http.Error(w, maxExceededString, http.StatusRequestEntityTooLarge)
-		loggingClient.Error(maxExceededString)
+		getLogger().Error(maxExceededString)
 		return
 	}
 
-	read, err := dbc.ReadingsByValueDescriptor(name, limit)
+	read, err := getDatabase().ReadingsByValueDescriptor(name, limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error(err.Error())
+		getLogger().Error(err.Error())
 		return
 	}
 
@@ -383,7 +383,7 @@ func readingByUomLabelHandler(w http.ResponseWriter, r *http.Request) {
 	// Problems unescaping URL
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error unescaping the UOM Label: " + err.Error())
+		getLogger().Error("Error unescaping the UOM Label: " + err.Error())
 		return
 	}
 
@@ -391,22 +391,22 @@ func readingByUomLabelHandler(w http.ResponseWriter, r *http.Request) {
 	// Problems converting limit to int
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error converting the limit to an integer: " + err.Error())
+		getLogger().Error("Error converting the limit to an integer: " + err.Error())
 		return
 	}
 
 	// Limit was exceeded
-	if limit > configuration.ReadMaxLimit {
+	if limit > getConfiguration().ReadMaxLimit {
 		http.Error(w, maxExceededString, http.StatusRequestEntityTooLarge)
-		loggingClient.Error(maxExceededString)
+		getLogger().Error(maxExceededString)
 		return
 	}
 
 	// Get the value descriptors
-	vList, err := dbc.ValueDescriptorsByUomLabel(uomLabel)
+	vList, err := getDatabase().ValueDescriptorsByUomLabel(uomLabel)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error(err.Error())
+		getLogger().Error(err.Error())
 		return
 	}
 
@@ -415,10 +415,10 @@ func readingByUomLabelHandler(w http.ResponseWriter, r *http.Request) {
 		vNames = append(vNames, v.Name)
 	}
 
-	readings, err := dbc.ReadingsByValueDescriptorNames(vNames, limit)
+	readings, err := getDatabase().ReadingsByValueDescriptorNames(vNames, limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error(err.Error())
+		getLogger().Error(err.Error())
 		return
 	}
 
@@ -436,29 +436,29 @@ func readingByLabelHandler(w http.ResponseWriter, r *http.Request) {
 	// Problem unescaping
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error unescaping the label of the value descriptor: " + err.Error())
+		getLogger().Error("Error unescaping the label of the value descriptor: " + err.Error())
 		return
 	}
 	limit, err := strconv.Atoi(vars["limit"])
 	// Problems converting to int
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error converting the limit to an integer: " + err.Error())
+		getLogger().Error("Error converting the limit to an integer: " + err.Error())
 		return
 	}
 
 	// Limit is too large
-	if limit > configuration.ReadMaxLimit {
-		loggingClient.Error(maxExceededString)
+	if limit > getConfiguration().ReadMaxLimit {
+		getLogger().Error(maxExceededString)
 		http.Error(w, maxExceededString, http.StatusRequestEntityTooLarge)
 		return
 	}
 
 	// Get the value descriptors
-	vdList, err := dbc.ValueDescriptorsByLabel(label)
+	vdList, err := getDatabase().ValueDescriptorsByLabel(label)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error(err.Error())
+		getLogger().Error(err.Error())
 		return
 	}
 	var vdNames []string
@@ -466,10 +466,10 @@ func readingByLabelHandler(w http.ResponseWriter, r *http.Request) {
 		vdNames = append(vdNames, vd.Name)
 	}
 
-	readings, err := dbc.ReadingsByValueDescriptorNames(vdNames, limit)
+	readings, err := getDatabase().ReadingsByValueDescriptorNames(vdNames, limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error(err.Error())
+		getLogger().Error(err.Error())
 		return
 	}
 
@@ -487,7 +487,7 @@ func readingByTypeHandler(w http.ResponseWriter, r *http.Request) {
 	t, err := url.QueryUnescape(vars["type"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error escaping the type: " + err.Error())
+		getLogger().Error("Error escaping the type: " + err.Error())
 		return
 	}
 
@@ -495,22 +495,22 @@ func readingByTypeHandler(w http.ResponseWriter, r *http.Request) {
 	// Problem converting to int
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error converting the limit to an integer: " + err.Error())
+		getLogger().Error("Error converting the limit to an integer: " + err.Error())
 		return
 	}
 
 	// Limit exceeds max limit
-	if l > configuration.ReadMaxLimit {
+	if l > getConfiguration().ReadMaxLimit {
 		http.Error(w, maxExceededString, http.StatusRequestEntityTooLarge)
-		loggingClient.Error(maxExceededString)
+		getLogger().Error(maxExceededString)
 		return
 	}
 
 	// Get the value descriptors
-	vdList, err := dbc.ValueDescriptorsByType(t)
+	vdList, err := getDatabase().ValueDescriptorsByType(t)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error(err.Error())
+		getLogger().Error(err.Error())
 		return
 	}
 	var vdNames []string
@@ -518,10 +518,10 @@ func readingByTypeHandler(w http.ResponseWriter, r *http.Request) {
 		vdNames = append(vdNames, vd.Name)
 	}
 
-	readings, err := dbc.ReadingsByValueDescriptorNames(vdNames, l)
+	readings, err := getDatabase().ReadingsByValueDescriptorNames(vdNames, l)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error(err.Error())
+		getLogger().Error(err.Error())
 		return
 	}
 
@@ -537,34 +537,34 @@ func readingByCreationTimeHandler(w http.ResponseWriter, r *http.Request) {
 	s, err := strconv.ParseInt((vars["start"]), 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error converting the start time to an integer: " + err.Error())
+		getLogger().Error("Error converting the start time to an integer: " + err.Error())
 		return
 	}
 	e, err := strconv.ParseInt((vars["end"]), 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error converting the end time to an integer: " + err.Error())
+		getLogger().Error("Error converting the end time to an integer: " + err.Error())
 		return
 	}
 	l, err := strconv.Atoi(vars["limit"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error converting the limit to an integer: " + err.Error())
+		getLogger().Error("Error converting the limit to an integer: " + err.Error())
 		return
 	}
 
 	switch r.Method {
 	case http.MethodGet:
-		if l > configuration.ReadMaxLimit {
-			loggingClient.Error(maxExceededString)
+		if l > getConfiguration().ReadMaxLimit {
+			getLogger().Error(maxExceededString)
 			http.Error(w, maxExceededString, http.StatusRequestEntityTooLarge)
 			return
 		}
 
-		readings, err := dbc.ReadingsByCreationTime(s, e, l)
+		readings, err := getDatabase().ReadingsByCreationTime(s, e, l)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusServiceUnavailable)
-			loggingClient.Error(err.Error())
+			getLogger().Error(err.Error())
 			return
 		}
 
@@ -584,51 +584,51 @@ func readingByValueDescriptorAndDeviceHandler(w http.ResponseWriter, r *http.Req
 	name, err := url.QueryUnescape(vars["name"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error unescaping the value descriptor name: " + err.Error())
+		getLogger().Error("Error unescaping the value descriptor name: " + err.Error())
 		return
 	}
 
 	device, err := url.QueryUnescape(vars["device"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error unescaping the device: " + err.Error())
+		getLogger().Error("Error unescaping the device: " + err.Error())
 		return
 	}
 
 	limit, err := strconv.Atoi(vars["limit"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error("Error converting limit to an integer: " + err.Error())
+		getLogger().Error("Error converting limit to an integer: " + err.Error())
 		return
 	}
 
-	if limit > configuration.ReadMaxLimit {
-		loggingClient.Error(maxExceededString)
+	if limit > getConfiguration().ReadMaxLimit {
+		getLogger().Error(maxExceededString)
 		http.Error(w, maxExceededString, http.StatusRequestEntityTooLarge)
 		return
 	}
 
 	// Check for the device
 	if !checkDevice(device) {
-		loggingClient.Error("Device not found for reading", "")
+		getLogger().Error("Device not found for reading", "")
 		http.Error(w, "Device not found for reading", http.StatusNotFound)
 		return
 	}
 
 	// Check for value descriptor
-	_, err = dbc.ValueDescriptorByName(name)
+	_, err = getDatabase().ValueDescriptorByName(name)
 	if err != nil {
-		if err == clients.ErrNotFound {
-			loggingClient.Error("Value Descriptor not found for Reading", "")
+		if err == errs.ErrNotFound {
+			getLogger().Error("Value Descriptor not found for Reading", "")
 			http.Error(w, "Value Descriptor not found for Reading", http.StatusNotFound)
 			return
 		}
 	}
 
-	readings, err := dbc.ReadingsByDeviceAndValueDescriptor(device, name, limit)
+	readings, err := getDatabase().ReadingsByDeviceAndValueDescriptor(device, name, limit)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
-		loggingClient.Error(err.Error())
+		getLogger().Error(err.Error())
 		return
 	}
 

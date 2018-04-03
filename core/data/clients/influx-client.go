@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"encoding/json"
+	"github.com/edgexfoundry/edgex-go/core/domain/errs"
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 	"gopkg.in/mgo.v2/bson"
 	"github.com/influxdata/influxdb/client/v2"
@@ -243,7 +244,7 @@ func (ic *InfluxClient) deleteById(collection string, id string) error {
 	q := fmt.Sprintf("DROP SERIES FROM %s WHERE id = '%s'", collection, id)
 	_, err := queryDB(ic.Client, q, ic.Database)
 	if err != nil {
-		return ErrNotFound
+		return errs.ErrNotFound
 	}
 	return nil
 }
@@ -560,7 +561,7 @@ func (ic *InfluxClient) AddValueDescriptor(v models.ValueDescriptor) (bson.Objec
 
 	// Duplicate name
 	if num != 0 {
-		return v.Id, ErrNotUnique
+		return v.Id, errs.ErrNotUnique
 	}
 
 	// Set id
@@ -593,7 +594,7 @@ func (ic *InfluxClient) UpdateValueDescriptor(v models.ValueDescriptor) error {
 		return err
 	}
 	if num != 0 {
-		return ErrNotUnique
+		return errs.ErrNotUnique
 	}
 	query = fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE name = '%s'", VALUE_DESCRIPTOR_COLLECTION, v.Name)
 	num, err = ic.getValueDescriptorsCount(query)
@@ -724,7 +725,7 @@ func (ic *InfluxClient) getValueDescriptors(q string) ([]models.ValueDescriptor,
 	}
 
 	if len(valuedescriptors) < 1 {
-		return valuedescriptors, ErrNotFound
+		return valuedescriptors, errs.ErrNotFound
 	}
 	
 	return valuedescriptors, nil

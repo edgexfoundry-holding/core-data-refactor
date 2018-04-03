@@ -23,12 +23,21 @@ package data
 import (
 	"net/http"
 
+	"github.com/edgexfoundry/edgex-go/routing"
 	"github.com/gorilla/mux"
 )
 
-func LoadRestRoutes() *mux.Router {
-	r := mux.NewRouter()
-	b := r.PathPrefix("/api/v1").Subrouter()
+type GorillaRouter struct {
+	router *mux.Router
+}
+
+func NewRouter() routing.RestRouter {
+	g := &GorillaRouter{mux.NewRouter() }
+	return g
+}
+
+func (g *GorillaRouter) LoadRoutes() http.Handler {
+	b := g.router.PathPrefix("/api/v1").Subrouter()
 
 	// EVENTS
 	// /api/v1/event
@@ -77,5 +86,5 @@ func LoadRestRoutes() *mux.Router {
 	// /api/v1/ping
 	b.HandleFunc("/ping", pingHandler)
 
-	return r
+	return g.router
 }

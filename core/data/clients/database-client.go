@@ -201,10 +201,8 @@ type DBConfiguration struct {
 	Password     string
 }
 
-var ErrNotFound error = errors.New("Item not found")
 var ErrUnsupportedDatabase error = errors.New("Unsuppored database type")
 var ErrInvalidObjectId error = errors.New("Invalid object ID")
-var ErrNotUnique error = errors.New("Resource already exists")
 
 // Return the dbClient interface
 func NewDBClient(config DBConfiguration) (DBClient, error) {
@@ -216,6 +214,7 @@ func NewDBClient(config DBConfiguration) (DBClient, error) {
 			fmt.Println("Error creating the mongo client: " + err.Error())
 			return nil, err
 		}
+		CurrentClient = mc
 		return mc, nil
 	case INFLUX:
 		// Create the influx client
@@ -224,12 +223,16 @@ func NewDBClient(config DBConfiguration) (DBClient, error) {
 			fmt.Println("Error creating the influx client: " + err.Error())
 			return nil, err
 		}
+		CurrentClient = ic
 		return ic, nil
 	case MOCK:
 		//Create the mock client
 		mock := &MockDb{}
+		CurrentClient = mock
 		return mock, nil
 	default:
 		return nil, ErrUnsupportedDatabase
 	}
 }
+
+var CurrentClient DBClient

@@ -12,54 +12,37 @@
  * the License.
  *
  * @microservice: core-data-go library
- * @author: Ryan Comer, Dell
+ * @author: Ryan Comer, Trevor Conn Dell
  * @version: 0.5.0
  *******************************************************************************/
-package messaging
+package internal
 
 import (
 	"encoding/json"
-	"sync"
-
-	"github.com/edgexfoundry/edgex-go/core/domain/models"
-	zmq "github.com/pebbe/zmq4"
+	"fmt"
+	"net/http"
 )
 
-type MQClient interface {
-	SendEventMessage(e models.Event) error
-}
 
-// Configuration struct for ZeroMQ
-type zeroMQConfiguration struct {
-	AddressPort string
-}
+// Helper function for encoding things for returning from REST calls
+func encode(i interface{}, w http.ResponseWriter) error {
+	w.Header().Add("Content-Type", "application/json")
 
-// ZeroMQ implementation of the event publisher
-type zeroMQClient struct {
-	socket	*zmq.Socket
-	mux     sync.Mutex
-}
-
-func newZeroMQEventPublisher(config zeroMQConfiguration) MQClient {
-	newSocket, _ := zmq.NewSocket(zmq.PUB)
-	newSocket.Bind(config.AddressPort)
-
-	return &zeroMQClient{
-		socket: newSocket,
-	}
-}
-
-func (zep *zeroMQClient) SendEventMessage(e models.Event) error {
-	s, err := json.Marshal(&e)
+	enc := json.NewEncoder(w)
+	err := enc.Encode(i)
+	// Problems encoding
 	if err != nil {
-		return err
+		return fmt.Errorf("error while encoding data: %v", err)
 	}
-	zep.mux.Lock()
-	defer zep.mux.Unlock()
-	_, err = zep.socket.SendBytes(s, 0)
-	if err != nil {
-		return err
-	}
-
 	return nil
+}
+
+// Test if the service is working
+func PingHandler(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	_, err := w.Write([]byte("pong"))
+	if err != nil {
+		getLogger().Error("Error writing pong: " + err.Error())
+	}
 }
