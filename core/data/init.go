@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients"
 	"github.com/edgexfoundry/edgex-go/core/data/config"
 	"github.com/edgexfoundry/edgex-go/core/data/clients"
 	"github.com/edgexfoundry/edgex-go/core/data/log"
@@ -29,10 +28,6 @@ import (
 	consulclient "github.com/edgexfoundry/edgex-go/support/consul-client"
 	"github.com/edgexfoundry/edgex-go/support/logging-client"
 )
-
-// Global variables
-var mdc metadataclients.DeviceClient
-var msc metadataclients.ServiceClient
 
 func ConnectToConsul(conf config.ConfigurationStruct) error {
 
@@ -78,10 +73,6 @@ func Init(conf *config.ConfigurationStruct, l logger.LoggingClient) error {
 	if err != nil {
 		return fmt.Errorf("couldn't connect to database: %v", err.Error())
 	}
-
-	// Create metadata clients
-	mdc = metadataclients.NewDeviceClient(conf.MetaDeviceURL)
-	msc = metadataclients.NewServiceClient(conf.MetaDeviceServiceURL)
 
 	// Create the event publisher
 	_ = messaging.NewMQPublisher(conf.ZeroMQAddressPort)

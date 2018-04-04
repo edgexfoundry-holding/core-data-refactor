@@ -27,6 +27,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/edgexfoundry/edgex-go/core/data/config"
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 )
 
@@ -130,10 +131,12 @@ func NewAddressableClient(metaDbAddressableUrl string) AddressableClient {
 /*
 Return an instance of DeviceClient
 */
-func NewDeviceClient(metaDbDeviceUrl string) DeviceClient {
-	d := DeviceRestClient{url: metaDbDeviceUrl}
-
-	return &d
+var deviceClient *DeviceRestClient //This would need to be refactored should we adopt another RPC implementation
+func GetDeviceClient() DeviceClient {
+	if deviceClient == nil {
+		deviceClient = &DeviceRestClient{url: config.Configuration.MetaDeviceURL}
+	}
+	return deviceClient
 }
 
 /*
@@ -148,10 +151,12 @@ func NewCommandClient(metaDbCommandUrl string) CommandClient {
 /*
 Return an instance of ServiceClient
 */
-func NewServiceClient(metaDbServiceUrl string) ServiceClient {
-	s := ServiceRestClient{url: metaDbServiceUrl}
-
-	return &s
+var serviceClient *ServiceRestClient
+func GetServiceClient() ServiceClient {
+	if serviceClient == nil {
+		serviceClient = &ServiceRestClient{url: config.Configuration.MetaDeviceServiceURL}
+	}
+	return serviceClient
 }
 
 // Return an instance of DeviceProfileClient

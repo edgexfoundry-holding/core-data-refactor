@@ -39,10 +39,10 @@ func CountEvents() (int, error) {
 func CountByDevice(device string) (int, error) {
 	// Get the device
 	// Try by ID
-	d, err := mdc.Device(device)
+	d, err := getDeviceClient().Device(device)
 	if err != nil {
 		// Try by Name
-		d, err = mdc.DeviceForName(device)
+		d, err = getDeviceClient().DeviceForName(device)
 		if err != nil {
 			getLogger().Error("error finding device " + device + ": " + err.Error(), "")
 			return -1, fmt.Errorf("error finding device %s: %v", device, err)
@@ -78,9 +78,9 @@ func DeleteByAge(age int64) (int, error) {
 func DeleteByDevice(deviceId string) (int, error) {
 	// Get the device
 	deviceFound := true
-	d, err := mdc.Device(deviceId)
+	d, err := getDeviceClient().Device(deviceId)
 	if err != nil {
-		d, err = mdc.DeviceForName(deviceId)
+		d, err = getDeviceClient().DeviceForName(deviceId)
 		if err != nil {
 			deviceFound = false
 		}
@@ -161,10 +161,10 @@ func GetEventsByDevice(deviceId string, limitNum int) ([]models.Event, error) {
 	// Get the device
 	deviceFound := true
 	// Try by ID
-	d, err := mdc.Device(deviceId)
+	d, err := getDeviceClient().Device(deviceId)
 	if err != nil {
 		// Try by Name
-		d, err = mdc.DeviceForName(deviceId)
+		d, err = getDeviceClient().DeviceForName(deviceId)
 		if err != nil {
 			deviceFound = false
 		}
@@ -209,10 +209,10 @@ func GetReadingsByDeviceAndValueDescriptor(deviceId string, descriptor string, l
 	// Get the device
 	deviceFound := true
 	// Try by id
-	d, err := mdc.Device(deviceId)
+	d, err := getDeviceClient().Device(deviceId)
 	if err != nil {
 		// Try by name
-		d, err = mdc.DeviceForName(deviceId)
+		d, err = getDeviceClient().DeviceForName(deviceId)
 		if err != nil {
 			deviceFound = false
 		}
@@ -259,10 +259,10 @@ func AddNewEvent(evt models.Event) (string, error) {
 	// Get device from metadata
 	deviceFound := true
 	// Try by ID
-	d, err := mdc.Device(evt.Device) //TODO: Why is this property double-purposed?
+	d, err := getDeviceClient().Device(evt.Device) //TODO: Why is this property double-purposed?
 	if err != nil {
 		// Try by name
-		d, err = mdc.DeviceForName(evt.Device)
+		d, err = getDeviceClient().DeviceForName(evt.Device)
 		if err != nil {
 			deviceFound = false
 		}
@@ -391,9 +391,9 @@ func UpdateEvent(from models.Event) error {
 	// Update the fields
 	if from.Device != "" {
 		deviceFound := true
-		d, err := mdc.Device(from.Device)
+		d, err := getDeviceClient().Device(from.Device)
 		if err != nil {
-			d, err = mdc.DeviceForName(from.Device)
+			d, err = getDeviceClient().DeviceForName(from.Device)
 			if err != nil {
 				deviceFound = false
 			}

@@ -18,20 +18,17 @@
 package devices
 
 import (
+	"time"
+
+	"github.com/edgexfoundry/edgex-go/core/aggregates"
+	"github.com/edgexfoundry/edgex-go/core/aggregates/events"
 	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients"
 	"github.com/edgexfoundry/edgex-go/core/data/config"
 	"github.com/edgexfoundry/edgex-go/core/data/clients"
-	"github.com/edgexfoundry/edgex-go/core/aggregates"
-	"github.com/edgexfoundry/edgex-go/core/aggregates/events"
 	"github.com/edgexfoundry/edgex-go/core/data/log"
 	"github.com/edgexfoundry/edgex-go/core/data/messaging"
 	"github.com/edgexfoundry/edgex-go/support/logging-client"
-	"time"
-	"github.com/edgexfoundry/edgex-go/core/domain/models"
 )
-
-var mdc metadataclients.DeviceClient
-var msc metadataclients.ServiceClient
 
 func getConfiguration() *config.ConfigurationStruct {
 	return config.Configuration
@@ -39,6 +36,14 @@ func getConfiguration() *config.ConfigurationStruct {
 
 func getDatabase() clients.DBClient {
 	return clients.CurrentClient
+}
+
+func getDeviceClient() metadataclients.DeviceClient {
+	return metadataclients.GetDeviceClient()
+}
+
+func getServiceClient() metadataclients.ServiceClient {
+	return metadataclients.GetServiceClient()
 }
 
 func getLogger() logger.LoggingClient {
@@ -63,9 +68,6 @@ func init() {
 			break;
 		}
 	}()
-
-	mdc = metadataclients.NewDeviceClient(getConfiguration().MetaDeviceURL)
-	msc = metadataclients.NewServiceClient(getConfiguration().MetaDeviceServiceURL)
 }
 
 func updateDeviceLastReportedConnected(device string) {
@@ -78,7 +80,7 @@ func updateDeviceLastReportedConnected(device string) {
 	t := time.Now().UnixNano() / int64(time.Millisecond)
 
 	// Get the device by name
-	d, err := mdc.DeviceForName(device)
+	d, err := getDeviceClient().DeviceForName(device)
 	if err != nil {
 		getLogger().Error("Error getting device " + device + ": " + err.Error())
 		return
@@ -87,7 +89,7 @@ func updateDeviceLastReportedConnected(device string) {
 	// Couldn't find by name
 	if &d == nil {
 		// Get the device by ID
-		d, err = mdc.Device(device)
+		d, err = getDeviceClient().Device(device)
 		if err != nil {
 			getLogger().Error("Error getting device " + device + ": " + err.Error())
 			return
@@ -100,12 +102,12 @@ func updateDeviceLastReportedConnected(device string) {
 		}
 
 		// Got device by ID, now update lastReported/Connected by ID
-		err = mdc.UpdateLastConnected(d.Id.Hex(), t)
+		err = getDeviceClient().UpdateLastConnected(d.Id.Hex(), t)
 		if err != nil {
 			getLogger().Error("Problems updating last connected value for device: " + d.Id.Hex())
 			return
 		}
-		err = mdc.UpdateLastReported(d.Id.Hex(), t)
+		err = getDeviceClient().UpdateLastReported(d.Id.Hex(), t)
 		if err != nil {
 			getLogger().Error("Problems updating last reported value for device: " + d.Id.Hex())
 		}
@@ -113,12 +115,12 @@ func updateDeviceLastReportedConnected(device string) {
 	}
 
 	// Found by name, now update lastReported
-	err = mdc.UpdateLastConnectedByName(d.Name, t)
+	err = getDeviceClient().UpdateLastConnectedByName(d.Name, t)
 	if err != nil {
 		getLogger().Error("Problems updating last connected value for device: " + d.Name)
 		return
 	}
-	err = mdc.UpdateLastReportedByName(d.Name, t)
+	err = getDeviceClient().UpdateLastReportedByName(d.Name, t)
 	if err != nil {
 		getLogger().Error("Problems updating last reported value for device: " + d.Name)
 	}
@@ -134,7 +136,7 @@ func updateDeviceServiceLastReportedConnected(device string) {
 	t := time.Now().UnixNano() / int64(time.Millisecond)
 
 	// Get the device
-	d, err := mdc.DeviceForName(device)
+	d, err := getDeviceClient().DeviceForName(device)
 	if err != nil {
 		getLogger().Error("Error getting device " + device + ": " + err.Error())
 		return
@@ -142,7 +144,7 @@ func updateDeviceServiceLastReportedConnected(device string) {
 
 	// Couldn't find by name
 	if &d == nil {
-		d, err = mdc.Device(device)
+		d, err = getDeviceClient().Device(device)
 		if err != nil {
 			getLogger().Error("Error getting device " + device + ": " + err.Error())
 			return
@@ -161,6 +163,6 @@ func updateDeviceServiceLastReportedConnected(device string) {
 		return
 	}
 
-	msc.UpdateLastConnected(s.Service.Id.Hex(), t)
-	msc.UpdateLastReported(s.Service.Id.Hex(), t)
+	getServiceClient().UpdateLastConnected(s.Service.Id.Hex(), t)
+	getServiceClient().UpdateLastReported(s.Service.Id.Hex(), t)
 }

@@ -34,8 +34,10 @@ func init() {
 	if EventAggregateEvents == nil {
 		EventAggregateEvents = make(chan interface{}, 10)
 	}
+}
 
-	mdc = metadataclients.NewDeviceClient(getConfiguration().MetaDeviceURL)
+func getDeviceClient() metadataclients.DeviceClient {
+	return metadataclients.GetDeviceClient()
 }
 
 func getConfiguration() *config.ConfigurationStruct {
