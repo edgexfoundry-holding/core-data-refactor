@@ -15,7 +15,7 @@
  * @version: 0.5.0
  *******************************************************************************/
 
-package data
+package routers
 
 import (
 	"encoding/json"
@@ -26,19 +26,22 @@ import (
 	"testing"
 
 	"github.com/edgexfoundry/edgex-go/core/data/clients"
+	"github.com/edgexfoundry/edgex-go/core/data/config"
+	"github.com/edgexfoundry/edgex-go/core/data/log"
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 	"github.com/edgexfoundry/edgex-go/support/logging-client"
-	"github.com/gorilla/mux"
 )
 
 var globalMockParams *clients.MockParams
-var testRoutes *mux.Router
+var testRoutes http.Handler
 
 func TestMain(m *testing.M) {
 	globalMockParams = clients.NewMockParams()
-	dbc, _ = clients.NewDBClient(clients.DBConfiguration{DbType: clients.MOCK})
-	testRoutes = LoadRestRoutes()
-	loggingClient = logger.NewMockClient()
+	_, _ = clients.NewDBClient(clients.DBConfiguration{DbType: clients.MOCK})
+	r, _ := NewRouter(Gorilla)
+	testRoutes = r.LoadRoutes()
+	log.Logger = logger.NewMockClient()
+	config.Configuration = &config.ConfigurationStruct{}
 	os.Exit(m.Run())
 }
 
@@ -46,7 +49,7 @@ func TestMain(m *testing.M) {
 func TestGetEventHandler(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/event", nil)
 	w := httptest.NewRecorder()
-	configuration.ReadMaxLimit = 1
+	config.Configuration.ReadMaxLimit = 1
 	testRoutes.ServeHTTP(w, req)
 
 	if w.Code != 200 {
@@ -64,13 +67,13 @@ func TestGetEventHandler(t *testing.T) {
 	for e := range events {
 		testEventWithoutReadings(events[e], t)
 	}
-	configuration.ReadMaxLimit = 0
+	config.Configuration.ReadMaxLimit = 0
 }
 
 func TestGetEventHandlerMaxExceeded(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/event", nil)
 	w := httptest.NewRecorder()
-	configuration.ReadMaxLimit = 0
+	config.Configuration.ReadMaxLimit = 0
 	testRoutes.ServeHTTP(w, req)
 
 	if w.Code != 413 {
