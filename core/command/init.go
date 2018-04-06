@@ -21,13 +21,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/edgexfoundry/edgex-go/core/command/config"
 	consulclient "github.com/edgexfoundry/edgex-go/support/consul-client"
 	logger "github.com/edgexfoundry/edgex-go/support/logging-client"
 )
 
 var loggingClient logger.LoggingClient
 
-func ConnectToConsul(conf ConfigurationStruct) error {
+func ConnectToConsul(conf config.ConfigurationStruct) error {
 
 	// Initialize service on Consul
 	err := consulclient.ConsulInit(consulclient.ConsulConfig{
@@ -51,9 +52,8 @@ func ConnectToConsul(conf ConfigurationStruct) error {
 	return nil
 }
 
-func Init(conf ConfigurationStruct, l logger.LoggingClient) {
+func Init(conf *config.ConfigurationStruct, l logger.LoggingClient) {
 	loggingClient = l
-	configuration = conf
-	//TODO: The above two are set due to global scope throughout the package. How can this be eliminated / refactored?
-
+	//TODO: The above is set due to global scope throughout the package. How can this be eliminated / refactored?
+	config.Configuration = conf
 }

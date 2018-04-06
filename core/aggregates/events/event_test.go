@@ -18,44 +18,18 @@
 package events
 
 import (
-	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients"
+	"os"
+	"testing"
+
 	"github.com/edgexfoundry/edgex-go/core/data/clients"
 	"github.com/edgexfoundry/edgex-go/core/data/config"
 	"github.com/edgexfoundry/edgex-go/core/data/log"
-	"github.com/edgexfoundry/edgex-go/core/data/messaging"
 	"github.com/edgexfoundry/edgex-go/support/logging-client"
 )
 
-//Only set this manually when providing a mock for unit testing
-var deviceClient metadataclients.DeviceClient
-
-var EventAggregateEvents chan interface{}
-
-func init() {
-	if EventAggregateEvents == nil {
-		EventAggregateEvents = make(chan interface{}, 10)
-	}
-}
-
-func getDeviceClient() metadataclients.DeviceClient {
-	if deviceClient == nil { //We check here in case a mock was supplied.
-		deviceClient = metadataclients.GetDeviceClient()
-	}
-	return deviceClient
-}
-
-func getConfiguration() *config.ConfigurationStruct {
-	return config.Configuration
-}
-
-func getDatabase() clients.DBClient {
-	return clients.CurrentClient
-}
-
-func getLogger() logger.LoggingClient {
-	return log.Logger
-}
-
-func getMQPublisher() messaging.EventPublisher {
-	return messaging.CurrentPublisher
+func TestMain(m *testing.M) {
+	_, _ = clients.NewDBClient(clients.DBConfiguration{DbType: clients.MOCK})
+	log.Logger = logger.NewMockClient()
+	config.Configuration = &config.ConfigurationStruct{}
+	os.Exit(m.Run())
 }

@@ -26,6 +26,7 @@ import (
 
 	"github.com/edgexfoundry/edgex-go"
 	"github.com/edgexfoundry/edgex-go/core/command"
+	localcfg "github.com/edgexfoundry/edgex-go/core/command/config"
 	"github.com/edgexfoundry/edgex-go/pkg/config"
 	"github.com/edgexfoundry/edgex-go/pkg/heartbeat"
 	logger "github.com/edgexfoundry/edgex-go/support/logging-client"
@@ -42,7 +43,7 @@ func main() {
 	flag.Parse()
 
 	//Read Configuration
-	configuration := &command.ConfigurationStruct{}
+	configuration := &localcfg.ConfigurationStruct{}
 	err := config.LoadFromFile(*useProfile, configuration)
 	if err != nil {
 		logBeforeTermination(err)
@@ -69,7 +70,7 @@ func main() {
 	loggingClient.Info(consulMsg)
 	loggingClient.Info(fmt.Sprintf("Starting %s %s ", command.COMMANDSERVICENAME, edgex.Version))
 
-	command.Init(*configuration, loggingClient)
+	command.Init(configuration, loggingClient)
 
 	r := command.LoadRestRoutes()
 	http.TimeoutHandler(nil, time.Millisecond*time.Duration(configuration.ServiceTimeout), "Request timed out")
@@ -88,7 +89,7 @@ func logBeforeTermination(err error) {
 	loggingClient.Error(err.Error())
 }
 
-func setLoggingTarget(conf command.ConfigurationStruct) string {
+func setLoggingTarget(conf localcfg.ConfigurationStruct) string {
 	logTarget := conf.LoggingRemoteURL
 	if !conf.EnableRemoteLogging {
 		return conf.LogFile

@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients"
+	"github.com/edgexfoundry/edgex-go/core/command/config"
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 )
 
@@ -40,7 +41,7 @@ func issueCommand(req *http.Request) (*http.Response, error) {
 }
 
 func commandByDeviceID(did string, cid string, b string, p bool) (string, int) {
-	var dc = metadataclients.NewDeviceClient(configuration.MetaDeviceURL)
+	var dc = metadataclients.GetDeviceClient()
 	d, err := dc.Device(did)
 
 	if err != nil {
@@ -55,7 +56,7 @@ func commandByDeviceID(did string, cid string, b string, p bool) (string, int) {
 		return "", http.StatusUnprocessableEntity
 	}
 
-	var cc = metadataclients.NewCommandClient(configuration.MetaCommandURL)
+	var cc = metadataclients.GetCommandClient()
 	c, err := cc.Command(cid)
 	if err != nil {
 		loggingClient.Error(err.Error(), "")
@@ -94,7 +95,7 @@ func commandByDeviceID(did string, cid string, b string, p bool) (string, int) {
 }
 
 func putDeviceAdminState(did string, as string) (int, error) {
-	var dc = metadataclients.NewDeviceClient(configuration.MetaDeviceURL)
+	var dc = metadataclients.GetDeviceClient()
 	err := dc.UpdateAdminState(did, as)
 	if err != nil {
 		loggingClient.Error(err.Error(), "")
@@ -104,7 +105,7 @@ func putDeviceAdminState(did string, as string) (int, error) {
 }
 
 func putDeviceAdminStateByName(dn string, as string) (int, error) {
-	var dc = metadataclients.NewDeviceClient(configuration.MetaDeviceURL)
+	var dc = metadataclients.GetDeviceClient()
 	err := dc.UpdateAdminStateByName(dn, as)
 	if err != nil {
 		loggingClient.Error(err.Error(), "")
@@ -114,7 +115,7 @@ func putDeviceAdminStateByName(dn string, as string) (int, error) {
 }
 
 func putDeviceOpState(did string, as string) (int, error) {
-	var dc = metadataclients.NewDeviceClient(configuration.MetaDeviceURL)
+	var dc = metadataclients.GetDeviceClient()
 	err := dc.UpdateOpState(did, as)
 	if err != nil {
 		loggingClient.Error(err.Error(), "")
@@ -124,7 +125,7 @@ func putDeviceOpState(did string, as string) (int, error) {
 }
 
 func putDeviceOpStateByName(dn string, as string) (int, error) {
-	var dc = metadataclients.NewDeviceClient(configuration.MetaDeviceURL)
+	var dc = metadataclients.GetDeviceClient()
 	err := dc.UpdateOpStateByName(dn, as)
 	if err != nil {
 		loggingClient.Error(err.Error(), "")
@@ -134,7 +135,7 @@ func putDeviceOpStateByName(dn string, as string) (int, error) {
 }
 
 func getCommands() (int, []models.CommandResponse, error) {
-	var dc = metadataclients.NewDeviceClient(configuration.MetaDeviceURL)
+	var dc = metadataclients.GetDeviceClient()
 	devices, err := dc.Devices()
 	if err != nil {
 		return http.StatusServiceUnavailable, nil, err
@@ -148,7 +149,7 @@ func getCommands() (int, []models.CommandResponse, error) {
 }
 
 func getCommandsByDeviceID(did string) (int, models.CommandResponse, error) {
-	var dc = metadataclients.NewDeviceClient(configuration.MetaDeviceURL)
+	var dc = metadataclients.GetDeviceClient()
 	d, err := dc.Device(did)
 	if err != nil {
 		return http.StatusServiceUnavailable, models.CommandResponse{}, err
@@ -157,7 +158,7 @@ func getCommandsByDeviceID(did string) (int, models.CommandResponse, error) {
 }
 
 func getCommandsByDeviceName(dn string) (int, models.CommandResponse, error) {
-	var dc = metadataclients.NewDeviceClient(configuration.MetaDeviceURL)
+	var dc = metadataclients.GetDeviceClient()
 	d, err := dc.DeviceForName(dn)
 	if err != nil {
 		return http.StatusServiceUnavailable, models.CommandResponse{}, err
@@ -165,6 +166,7 @@ func getCommandsByDeviceName(dn string) (int, models.CommandResponse, error) {
 	return http.StatusOK, models.CommandResponseFromDevice(d, constructCommandURL()), err
 }
 
+//TODO: Get rid of this. Move it somewhere else.
 func constructCommandURL() string {
-	return configuration.URLProtocol + configuration.ServiceAddress + ":" + strconv.Itoa(configuration.ServicePort)
+	return config.Configuration.URLProtocol + config.Configuration.ServiceAddress + ":" + strconv.Itoa(config.Configuration.ServicePort)
 }

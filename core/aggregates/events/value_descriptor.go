@@ -79,7 +79,7 @@ func GetAllValueDescriptors() ([]models.ValueDescriptor, error) {
 
 func GetValueDescriptorsByDeviceId(deviceId string) ([]models.ValueDescriptor, error) {
 	// Get the device
-	d, err := mdc.Device(deviceId)
+	d, err := getDeviceClient().Device(deviceId)
 	if err != nil {
 		getLogger().Error("Device not found: " + err.Error())
 		return nil, errs.ErrNotFound
@@ -112,7 +112,7 @@ func GetValueDescriptorsByDeviceId(deviceId string) ([]models.ValueDescriptor, e
 
 func GetValueDescriptorsByDeviceName(device string) ([]models.ValueDescriptor, error) {
 	// Get the device
-	d, err := mdc.DeviceForName(device)
+	d, err := getDeviceClient().DeviceForName(device)
 	if err != nil {
 		getLogger().Error("Device not found: " + err.Error())
 		return nil, errs.ErrNotFound

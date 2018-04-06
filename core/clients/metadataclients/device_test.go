@@ -19,10 +19,12 @@ package metadataclients
 
 import (
 	"fmt"
-	"github.com/edgexfoundry/edgex-go/core/domain/models"
 	"gopkg.in/mgo.v2/bson"
 	"os"
 	"testing"
+
+	"github.com/edgexfoundry/edgex-go/core/data/config"
+	"github.com/edgexfoundry/edgex-go/core/domain/models"
 )
 
 const (
@@ -43,7 +45,7 @@ func TestAddDevice(t *testing.T) {
 		Service:        ds,
 	}
 
-	_, err := dc.Add(&d)
+	_, err := GetDeviceClient().Add(&d)
 	if err != nil {
 		t.Log(err.Error())
 		t.FailNow()
@@ -57,17 +59,20 @@ var dp models.DeviceProfile
 
 // Main method for the tests
 func TestMain(m *testing.M) {
-	dc = NewDeviceClient(deviceUrl)
-	ac := NewAddressableClient(addressableUrl)
-	dsc := NewServiceClient(deviceServiceUrl)
-	dpc := NewDeviceProfileClient(deviceProfileUrl)
+	//These are more properly integration tests
+	//TODO: Refactor using mocks for metadataclients
+	config.Configuration = &config.ConfigurationStruct{MetaDeviceURL:deviceUrl,
+													   MetaAddressableURL:addressableUrl,
+													   MetaDeviceServiceURL:deviceServiceUrl,
+													   MetaDeviceProfileURL:deviceProfileUrl}
 
 	a = models.Addressable{
-		Address: "http://localhost",
+		Address: "localhost",
 		Name:    "Test Addressable",
 		Port:    3000,
-	}
-	id, err := ac.Add(&a)
+		Protocol: "http"}
+
+	id, err := GetAddressableClient().Add(&a)
 	if err != nil {
 		fmt.Println("Error posting addressable: " + err.Error())
 		return
@@ -82,7 +87,7 @@ func TestMain(m *testing.M) {
 			OperatingState: "ENABLED",
 		},
 	}
-	id, err = dsc.Add(&ds)
+	id, err = GetServiceClient().Add(&ds)
 	if err != nil {
 		fmt.Println("Error posting device service: " + err.Error())
 		return
@@ -94,7 +99,7 @@ func TestMain(m *testing.M) {
 		Model:        "Test model for device profile",
 		Name:         "Test name for device profile",
 	}
-	id, err = dpc.Add(&dp)
+	id, err = GetDeviceProfileClient().Add(&dp)
 	if err != nil {
 		fmt.Println("Error posting new device profile: " + err.Error())
 		return

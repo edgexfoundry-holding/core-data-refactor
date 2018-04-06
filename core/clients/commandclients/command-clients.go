@@ -49,20 +49,20 @@ func NewCommandClient(commandURL string) CommandClient {
 
 // Devices : return all Devices
 func (cc *CommandRestClient) Devices() ([]models.Device, error) {
-	dc := metadataclients.NewDeviceClient(cc.url)
+	dc := metadataclients.GetDeviceClient()
 
 	return dc.Devices()
 }
 
 // Device : return device by id
 func (cc *CommandRestClient) Device(id string) (models.Device, error) {
-	dc := metadataclients.NewDeviceClient(cc.url)
+	dc := metadataclients.GetDeviceClient()
 	return dc.Device(id)
 }
 
 // DeviceByName : return device by name
 func (cc *CommandRestClient) DeviceByName(n string) (models.Device, error) {
-	dc := metadataclients.NewDeviceClient(cc.url)
+	dc := metadataclients.GetDeviceClient()
 	return dc.DeviceForName(n)
 }
 

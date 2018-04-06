@@ -122,10 +122,12 @@ type DeviceProfileRestClient struct {
 /*
 Return an instance of AddressableClient
 */
-func NewAddressableClient(metaDbAddressableUrl string) AddressableClient {
-	a := AddressableRestClient{url: metaDbAddressableUrl}
-
-	return &a
+var addressableClient *AddressableRestClient
+func GetAddressableClient() AddressableClient {
+	if addressableClient == nil {
+		addressableClient = &AddressableRestClient{url: config.Configuration.MetaAddressableURL}
+	}
+	return addressableClient
 }
 
 /*
@@ -142,10 +144,12 @@ func GetDeviceClient() DeviceClient {
 /*
 Return an instance of CommandClient
 */
-func NewCommandClient(metaDbCommandUrl string) CommandClient {
-	c := CommandRestClient{url: metaDbCommandUrl}
-
-	return &c
+var commandClient *CommandRestClient
+func GetCommandClient() CommandClient {
+	if commandClient == nil {
+		commandClient = &CommandRestClient{url: config.Configuration.MetaCommandURL}
+	}
+	return commandClient
 }
 
 /*
@@ -160,10 +164,12 @@ func GetServiceClient() ServiceClient {
 }
 
 // Return an instance of DeviceProfileClient
-func NewDeviceProfileClient(metaDbDeviceProfileUrl string) DeviceProfileClient {
-	d := DeviceProfileRestClient{url: metaDbDeviceProfileUrl}
-
-	return &d
+var deviceProfileClient *DeviceProfileRestClient
+func GetDeviceProfileClient() DeviceProfileClient {
+	if deviceProfileClient == nil {
+		deviceProfileClient = &DeviceProfileRestClient{url: config.Configuration.MetaDeviceProfileURL}
+	}
+	return deviceProfileClient
 }
 
 // Helper method to make the request and return the response

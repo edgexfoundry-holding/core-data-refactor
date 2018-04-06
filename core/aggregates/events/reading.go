@@ -52,10 +52,10 @@ func AddNewReading(reading models.Reading) (string, error) {
 	// Check device
 	if reading.Device != "" {
 		// Try by name
-		d, err := mdc.DeviceForName(reading.Device)
+		d, err := getDeviceClient().DeviceForName(reading.Device)
 		// Try by ID
 		if err != nil {
-			d, err = mdc.Device(reading.Device)
+			d, err = getDeviceClient().Device(reading.Device)
 			if err != nil {
 				getLogger().Error(err.Error(), "")
 				return "", fmt.Errorf(err.Error())
@@ -127,10 +127,10 @@ func GetReadingsByDevice(device string, limit int) ([]models.Reading, error) {
 	// Try to get device
 	// First check by name
 	var d models.Device
-	d, err := mdc.DeviceForName(device)
+	d, err := getDeviceClient().DeviceForName(device)
 	if err != nil {
 		// Then check by ID
-		d, err = mdc.Device(device)
+		d, err = getDeviceClient().Device(device)
 		if err != nil {
 			if getConfiguration().MetaDataCheck {
 				getLogger().Error("Error getting readings for a non-existent device: " + device)
