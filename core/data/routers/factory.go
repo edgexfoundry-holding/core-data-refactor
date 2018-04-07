@@ -44,10 +44,10 @@ func NewRouter(t RouterTyper) (routing.RestRouter, error) {
 	case Gorilla:
 		g := &gorillaRouter{mux.NewRouter() }
 		return g, nil
-		break;
-	case Opentrace:
-		return nil, fmt.Errorf("opentrace not yet supported")
-		break;
+		/*	break;
+		case Opentrace:
+			return nil, fmt.Errorf("opentrace not yet supported")
+			break;*/
 	}
 	//effectively default case
 	return nil, fmt.Errorf("unrecognized router type")

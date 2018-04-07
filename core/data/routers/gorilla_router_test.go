@@ -36,7 +36,7 @@ var globalMockParams *clients.MockParams
 var testRoutes http.Handler
 
 func TestMain(m *testing.M) {
-	globalMockParams = clients.NewMockParams()
+	globalMockParams = clients.GetMockParams()
 	_, _ = clients.NewDBClient(clients.DBConfiguration{DbType: clients.MOCK})
 	r, _ := NewRouter(Gorilla)
 	testRoutes = r.LoadRoutes()

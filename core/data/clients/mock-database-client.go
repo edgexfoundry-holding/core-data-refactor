@@ -31,14 +31,15 @@ type MockParams struct {
 
 var mockParams *MockParams
 
-func NewMockParams() *MockParams {
-	if mockParams == nil {
-		mockParams = &MockParams{
-			EventId:bson.NewObjectId(),
-			Device:"test device",
-			Origin:123456789}
-	}
+func GetMockParams() *MockParams {
 	return mockParams
+}
+
+func init() {
+	mockParams = &MockParams{
+		EventId:bson.NewObjectId(),
+		Device:"Test Device",
+		Origin:123456789}
 }
 
 type MockDb struct {
@@ -92,7 +93,14 @@ func (mc *MockDb) DeleteEventById(id string) error {
 }
 
 func (mc *MockDb) EventsForDeviceLimit(id string, limit int) ([]models.Event, error) {
-	return []models.Event{}, nil
+	ticks := time.Now().Unix()
+	events := []models.Event{}
+
+	evt1 := models.Event{ID:mockParams.EventId, Pushed:1, Device:mockParams.Device, Created:ticks, Modified:ticks,
+		Origin:mockParams.Origin, Schedule:"TestScheduleA", Event:"SampleEvent", Readings:[]models.Reading{}}
+
+	events = append(events, evt1)
+	return events, nil
 }
 
 func (mc *MockDb) EventsForDevice(id string) ([]models.Event, error){
