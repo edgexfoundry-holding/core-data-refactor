@@ -108,8 +108,8 @@ func testEventWithoutReadings(event models.Event, t *testing.T) {
 		t.Error("eventId mismatch. expected " + globalMockParams.EventId.Hex() + " received " + event.ID.Hex())
 	}
 
-	if event.Device != globalMockParams.Device {
-		t.Error("device mismatch. expected " + globalMockParams.Device + " received " + event.Device)
+	if event.Device != globalMockParams.DeviceName {
+		t.Error("device mismatch. expected " + globalMockParams.DeviceName + " received " + event.Device)
 	}
 
 	if event.Origin != globalMockParams.Origin {

@@ -31,19 +31,24 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/mgo.v2/bson"
+	"strconv"
+	"fmt"
 )
 
+var mockParams *clients.MockParams
+
 func TestMain(m *testing.M) {
+	mockParams = clients.GetMockParams()
 	deviceClient = registerMockMethods()
 	_, _ = clients.NewDBClient(clients.DBConfiguration{DbType: clients.MOCK})
 	log.Logger = logger.NewMockClient()
-	config.Configuration = &config.ConfigurationStruct{}
+	config.Configuration = &config.ConfigurationStruct{ MetaDataCheck:true}
 
 	os.Exit(m.Run())
 }
 
-func TestGetEventsByDevice(t *testing.T) {
-	events, err := GetEventsByDevice(bson.NewObjectId().Hex(), 10)
+func TestGetEventsByDeviceId(t *testing.T) {
+	events, err := GetEventsByDevice(mockParams.DeviceId.Hex(), 10)
 
 	if err != nil {
 		t.Error(err.Error())
@@ -52,6 +57,267 @@ func TestGetEventsByDevice(t *testing.T) {
 
 	if len(events) == 0 {
 		t.Errorf("no events returned")
+	}
+}
+
+func TestGetEventsByDeviceName(t *testing.T) {
+	events, err := GetEventsByDevice(mockParams.DeviceName, 10)
+
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if len(events) == 0 {
+		t.Errorf("no events returned")
+	}
+}
+
+func TestGetEventsByDeviceNameForFailure(t *testing.T) {
+	_, err := GetEventsByDevice("something random", 10)
+
+	if err == nil {
+		t.Error("error should have been thrown")
+		return
+	}
+}
+
+func TestEventsCount(t *testing.T) {
+	count, err := CountEvents()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if count != mockParams.EventCount {
+		t.Error(fmt.Errorf("event count %v does not match expected mock value %v", count, mockParams.EventCount))
+		return
+	}
+}
+
+func TestEventsCountByDeviceId(t *testing.T) {
+	count, err := CountByDevice(mockParams.DeviceId.Hex())
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if count != mockParams.EventCount {
+		t.Error(fmt.Errorf("event count %v does not match expected mock value %v", count, mockParams.EventCount))
+		return
+	}
+}
+
+func TestEventsCountByDeviceName(t *testing.T) {
+	count, err := CountByDevice(mockParams.DeviceName)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if count != mockParams.EventCount {
+		t.Error(fmt.Errorf("event count %v does not match expected mock value %v", count, mockParams.EventCount))
+		return
+	}
+}
+
+func TestEventsCountByDeviceNameForFailure(t *testing.T) {
+	_, err := CountByDevice("something random")
+	if err == nil {
+		t.Error("error should have been thrown")
+		return
+	}
+}
+
+func TestDeleteByAge(t *testing.T) {
+	del, err := DeleteByAge(mockParams.EventAgeInTicks)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if del == 0 {
+		t.Errorf("no events were deleted, should be at least 1")
+		return
+	}
+}
+
+func TestDeleteByAgeForFailure(t *testing.T) {
+	del, err := DeleteByAge(mockParams.EventAgeInTicks - 10)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if del != 0 {
+		t.Errorf("events were deleted, should have been zero")
+		return
+	}
+}
+
+func TestDeleteByDeviceId(t *testing.T) {
+	del, err := DeleteByDevice(mockParams.DeviceId.Hex())
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if del == 0 {
+		t.Errorf("no events were deleted, should be at least 1")
+		return
+	}
+}
+
+func TestDeleteByDeviceName(t *testing.T) {
+	del, err := DeleteByDevice(mockParams.DeviceName)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if del == 0 {
+		t.Errorf("no events were deleted, should be at least 1")
+		return
+	}
+}
+
+func TestDeleteByDeviceNameForFailure(t *testing.T) {
+	_, err := DeleteByDevice("something random")
+	if err == nil {
+		t.Error("error should have been thrown")
+		return
+	}
+}
+
+func TestDeleteEventById(t *testing.T) {
+	err := DeleteEventById(mockParams.EventId.Hex())
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+}
+
+func TestGetAllEvents(t *testing.T) {
+	events, err := GetAllEvents()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if len(events) == 0 {
+		t.Errorf("no events returned, expected at least 1")
+		return
+	}
+}
+
+func TestGetEventsByCreateTime(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 2
+	events, err := GetEventsByCreateTime(mockParams.EventAgeInTicks, mockParams.EventAgeInTicks + 10, 3)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if len(events) != 2 {
+		t.Errorf("unexpected number of events %v, expected 2", len(events))
+		return
+	}
+}
+
+func TestGetEventById(t *testing.T) {
+	event, err := GetEventById(mockParams.EventId.Hex())
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	testEventWithoutReadings(event, t)
+}
+
+func TestGetReadingsByDeviceAndValueDescriptor(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 2
+	readings, err := GetReadingsByDeviceAndValueDescriptor(mockParams.DeviceName, mockParams.ReadingName, 3)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) == 0 {
+		t.Errorf("no readings returned, expected at least 1")
+		return
+	}
+	if len(readings) > getConfiguration().ReadMaxLimit {
+		t.Errorf("readings returned %v exceeded ReadMaxLimit %v", len(readings), getConfiguration().ReadMaxLimit)
+		return
+	}
+	for _, r := range readings {
+		if r.Name != mockParams.ReadingName {
+			t.Errorf("unexpected reading name returned %s", r.Name)
+			return
+		}
+	}
+}
+
+func TestGetReadingsByDeviceAndValueDescriptorDeviceNotFound(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 2
+	_, err := GetReadingsByDeviceAndValueDescriptor("something random", mockParams.ReadingName, 3)
+	if err == nil {
+		t.Errorf("error was expected when supplying bogus device name")
+		return
+	}
+}
+
+func TestPurge(t *testing.T) {
+	err := Purge()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+}
+
+func TestPurgeIfPublished(t *testing.T) {
+	count, err := PurgeIfPublished()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if count == 0 {
+		t.Errorf("%v events deleted, expected at least 1", count)
+		return
+	}
+}
+
+func TestTouchInvalidIdFailure(t *testing.T) {
+	err := Touch("test")
+	if err == nil {
+		t.Errorf("error expected for non-bson object id eventId")
+		return
+	}
+}
+
+func TestTouch(t *testing.T) {
+	err := Touch(mockParams.EventId.Hex())
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+}
+
+func TestUpdateEvent(t *testing.T) {
+	event, _ := getDatabase().EventById(mockParams.EventId.Hex()) //using this as a factory
+	err := UpdateEvent(event)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+}
+
+func TestUpdateEventInvalidDeviceFailure(t *testing.T) {
+	event, _ := getDatabase().EventById(mockParams.EventId.Hex()) //using this as a factory
+	event.Device = "something random"
+	err := UpdateEvent(event)
+	if err == nil {
+		t.Errorf("expected error for invalid device name")
+		return
 	}
 }
 
@@ -65,22 +331,47 @@ func registerMockMethods() metadataclients.DeviceClient {
 		Protocol: "http"}
 
 	mockDeviceResultFn := func(id string) models.Device {
-		device := models.Device{Id:bson.ObjectIdHex(id), Name:"Test Device", Addressable:mockAddressable}
-
-		return device
+		if bson.IsObjectIdHex(id) {
+			return models.Device{Id:bson.ObjectIdHex(id), Name:mockParams.DeviceName, Addressable:mockAddressable}
+		}
+		return models.Device{}
 	}
 	client.On("Device", mock.MatchedBy(func(id string) bool {
-		return id != "" && bson.IsObjectIdHex(id)
+		return bson.IsObjectIdHex(id)
 	})).Return(mockDeviceResultFn, nil)
+    client.On("Device", mock.MatchedBy(func(id string) bool {
+    	return !bson.IsObjectIdHex(id)
+	})).Return(mockDeviceResultFn, fmt.Errorf("id is not bson ObjectIdHex"))
 
 	mockDeviceForNameResultFn := func(name string) models.Device {
-		device := models.Device{Id:bson.NewObjectId(), Name:"Test Device", Addressable:mockAddressable}
+		device := models.Device{Id:bson.NewObjectId(), Name:name, Addressable:mockAddressable}
 
 		return device
 	}
 	client.On("DeviceForName", mock.MatchedBy(func(name string) bool {
-		return name == "Test Device"
+		return name == mockParams.DeviceName
 	})).Return(mockDeviceForNameResultFn, nil)
+	client.On("DeviceForName", mock.MatchedBy(func(name string) bool {
+		return name != mockParams.DeviceName
+	})).Return(mockDeviceForNameResultFn, fmt.Errorf("no device found for name"))
+
+
+
+
 
 	return client
+}
+
+func testEventWithoutReadings(event models.Event, t *testing.T) {
+	if event.ID.Hex() != mockParams.EventId.Hex() {
+		t.Error("eventId mismatch. expected " + mockParams.EventId.Hex() + " received " + event.ID.Hex())
+	}
+
+	if event.Device != mockParams.DeviceName {
+		t.Error("device mismatch. expected " + mockParams.DeviceName + " received " + event.Device)
+	}
+
+	if event.Origin != mockParams.Origin {
+		t.Error("origin mismatch. expected " + strconv.FormatInt(mockParams.Origin, 10) + " received " + strconv.FormatInt(event.Origin, 10))
+	}
 }

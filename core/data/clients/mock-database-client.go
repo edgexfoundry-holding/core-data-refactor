@@ -24,9 +24,13 @@ import (
 )
 
 type MockParams struct {
+	DeviceId bson.ObjectId
 	EventId bson.ObjectId
-	Device string
+	EventCount int
+	DeviceName string
+	EventAgeInTicks int64
 	Origin int64
+	ReadingName string
 }
 
 var mockParams *MockParams
@@ -37,9 +41,13 @@ func GetMockParams() *MockParams {
 
 func init() {
 	mockParams = &MockParams{
+		DeviceId:bson.NewObjectId(),
 		EventId:bson.NewObjectId(),
-		Device:"Test Device",
-		Origin:123456789}
+		EventCount:1,
+		DeviceName:"Test Device",
+		EventAgeInTicks:1257894000,
+		Origin:123456789,
+	    ReadingName:"Temperature"}
 }
 
 type MockDb struct {
@@ -55,7 +63,7 @@ func (mc *MockDb) Events() ([]models.Event, error) {
 	ticks := time.Now().Unix()
 	events := []models.Event{}
 
-	evt1 := models.Event{ID:mockParams.EventId, Pushed:1, Device:mockParams.Device, Created:ticks, Modified:ticks,
+	evt1 := models.Event{ID:mockParams.EventId, Pushed:1, Device:mockParams.DeviceName, Created:ticks, Modified:ticks,
 		Origin:mockParams.Origin, Schedule:"TestScheduleA", Event:"SampleEvent", Readings:[]models.Reading{}}
 
 	events = append(events, evt1)
@@ -74,18 +82,18 @@ func (mc *MockDb) EventById(id string) (models.Event, error){
 	ticks := time.Now().Unix()
 
 	if id == mockParams.EventId.Hex() {
-		return models.Event{ID:mockParams.EventId, Pushed:1, Device:mockParams.Device, Created:ticks, Modified:ticks,
+		return models.Event{ID:mockParams.EventId, Pushed:1, Device:mockParams.DeviceName, Created:ticks, Modified:ticks,
 			Origin:mockParams.Origin, Schedule:"TestScheduleA", Event:"SampleEvent", Readings:[]models.Reading{}}, nil
 	}
 	return models.Event{}, nil
 }
 
 func (mc *MockDb) EventCount() (int, error) {
-	return 0, nil
+	return mockParams.EventCount, nil
 }
 
 func (mc *MockDb) EventCountByDeviceId(id string) (int, error) {
-	return 0, nil
+	return mockParams.EventCount, nil
 }
 
 func (mc *MockDb) DeleteEventById(id string) error {
@@ -96,7 +104,7 @@ func (mc *MockDb) EventsForDeviceLimit(id string, limit int) ([]models.Event, er
 	ticks := time.Now().Unix()
 	events := []models.Event{}
 
-	evt1 := models.Event{ID:mockParams.EventId, Pushed:1, Device:mockParams.Device, Created:ticks, Modified:ticks,
+	evt1 := models.Event{ID:mockParams.EventId, Pushed:1, Device:mockParams.DeviceName, Created:ticks, Modified:ticks,
 		Origin:mockParams.Origin, Schedule:"TestScheduleA", Event:"SampleEvent", Readings:[]models.Reading{}}
 
 	events = append(events, evt1)
@@ -104,11 +112,44 @@ func (mc *MockDb) EventsForDeviceLimit(id string, limit int) ([]models.Event, er
 }
 
 func (mc *MockDb) EventsForDevice(id string) ([]models.Event, error){
-	return []models.Event{}, nil
+	events := []models.Event{}
+	ticks := time.Now().Unix()
+
+	if id == mockParams.DeviceId.Hex() || id == mockParams.DeviceName {
+		for len(events) < 4 {
+			readings := buildListOfMockReadings()
+			evt1 := models.Event{ID: mockParams.EventId, Pushed: 1, Device: mockParams.DeviceName, Created: ticks, Modified: ticks,
+				Origin: mockParams.Origin, Schedule: "TestScheduleA", Event: "SampleEvent", Readings: readings}
+
+			events = append(events, evt1)
+		}
+	}
+
+	return events, nil
 }
 
 func (mc *MockDb) EventsByCreationTime(startTime, endTime int64, limit int) ([]models.Event, error) {
-	return []models.Event{}, nil
+	ticks := time.Now().Unix()
+	events := []models.Event{}
+
+	if startTime == mockParams.EventAgeInTicks {
+		if limit > 0 {
+			evt1 := models.Event{ID: bson.NewObjectId(), Pushed: 1, Device: mockParams.DeviceName, Created: ticks, Modified: ticks,
+				Origin: mockParams.Origin, Schedule: "TestScheduleA", Event: "SampleEvent1", Readings: []models.Reading{}}
+			events = append(events, evt1)
+		}
+		if limit > 1 {
+			evt2 := models.Event{ID: bson.NewObjectId(), Pushed: 1, Device: mockParams.DeviceName, Created: ticks, Modified: ticks,
+				Origin: mockParams.Origin, Schedule: "TestScheduleA", Event: "SampleEvent2", Readings: []models.Reading{}}
+			events = append(events, evt2)
+		}
+		if limit > 2 {
+			evt3 := models.Event{ID: bson.NewObjectId(), Pushed: 1, Device: mockParams.DeviceName, Created: ticks, Modified: ticks,
+				Origin: mockParams.Origin, Schedule: "TestScheduleA", Event: "SampleEvent3", Readings: []models.Reading{}}
+			events = append(events, evt3)
+		}
+	}
+	return events, nil
 }
 
 func (mc *MockDb) ReadingsByDeviceAndValueDescriptor(deviceId, valueDescriptor string, limit int) ([]models.Reading, error) {
@@ -116,11 +157,29 @@ func (mc *MockDb) ReadingsByDeviceAndValueDescriptor(deviceId, valueDescriptor s
 }
 
 func (mc *MockDb) EventsOlderThanAge(age int64) ([]models.Event, error) {
-	return []models.Event{}, nil
+	events := []models.Event{}
+	if age == mockParams.EventAgeInTicks {
+		evt1 := models.Event{ID:bson.NewObjectId(), Pushed:1, Device:mockParams.DeviceName, Created:1257893999, Modified:1257893999,
+			Origin:mockParams.Origin, Schedule:"TestScheduleA", Event:"SampleEvent", Readings:[]models.Reading{}}
+
+		events = append(events, evt1)
+	}
+	return events, nil
 }
 
 func (mc *MockDb) EventsPushed() ([]models.Event, error) {
-	return []models.Event{}, nil
+	events := []models.Event{}
+	ticks := time.Now().Unix()
+
+	for len(events) < 4 {
+		readings := buildListOfMockReadings()
+		evt1 := models.Event{ID: bson.NewObjectId(), Pushed: 1, Device: mockParams.DeviceName, Created: ticks, Modified: ticks,
+			Origin: mockParams.Origin, Schedule: "TestScheduleA", Event: "SampleEvent", Readings: readings}
+
+		events = append(events, evt1)
+	}
+
+	return events, nil
 }
 
 func (mc *MockDb) ScrubAllEvents() error {
@@ -202,4 +261,28 @@ func (mc *MockDb) ValueDescriptorsByLabel(label string) ([]models.ValueDescripto
 
 func (mc *MockDb) ValueDescriptorsByType(t string) ([]models.ValueDescriptor, error) {
 	return []models.ValueDescriptor{}, nil
+}
+
+func buildListOfMockReadings() []models.Reading {
+	ticks := time.Now().Unix()
+	r1 := models.Reading{Id:bson.NewObjectId(),
+		Name:"Temperature",
+		Value:"45",
+		Origin:mockParams.Origin,
+		Created:ticks,
+		Modified:ticks,
+		Pushed:ticks,
+		Device:mockParams.DeviceName}
+
+	r2 := models.Reading{Id:bson.NewObjectId(),
+		Name:"Pressure",
+		Value:"1.01325",
+		Origin:mockParams.Origin,
+		Created:ticks,
+		Modified:ticks,
+		Pushed:ticks,
+		Device:mockParams.DeviceName}
+	readings := []models.Reading{}
+	readings = append(readings, r1, r2)
+	return readings
 }

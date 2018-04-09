@@ -24,6 +24,7 @@
 	 "github.com/edgexfoundry/edgex-go/core/aggregates"
 	 "github.com/edgexfoundry/edgex-go/core/domain/errs"
 	 "github.com/edgexfoundry/edgex-go/core/domain/models" //for now
+	 "gopkg.in/mgo.v2/bson"
  )
 
 func CountEvents() (int, error) {
@@ -176,8 +177,9 @@ func GetEventsByDevice(deviceId string, limitNum int) ([]models.Event, error) {
 
 	// See if you need to check metadata for the device
 	if getConfiguration().MetaDataCheck && !deviceFound {
-		getLogger().Error("error getting readings for non-existent device " + deviceId)
-		return nil, fmt.Errorf("error getting readings for non-existent device " + deviceId)
+		msg := "error getting readings for non-existent device " + deviceId
+		getLogger().Error(msg)
+		return nil, fmt.Errorf(msg)
 	}
 
 	if limitNum > getConfiguration().ReadMaxLimit {
@@ -360,6 +362,11 @@ func PurgeIfPublished() (int, error) {
 }
 
 func Touch(id string) error {
+	if !bson.IsObjectIdHex(id) {
+		msg := fmt.Sprintf("%s is not a valid bson objectId", id)
+		getLogger().Error(msg)
+		return fmt.Errorf(msg)
+	}
 	// Check if the event exists
 	evt, err := getDatabase().EventById(id)
 	if err != nil {
