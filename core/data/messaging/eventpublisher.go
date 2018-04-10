@@ -20,12 +20,15 @@ package messaging
 import (
 	"github.com/edgexfoundry/edgex-go/core/data/errors"
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
+	"github.com/edgexfoundry/edgex-go/core/data/messaging/mocks"
 )
 
 // Types of messaging protocols
+type MQPublisherType int8
 const (
-	ZEROMQ int = iota
+	ZEROMQ MQPublisherType = iota
 	MQTT
+	MOCK
 )
 
 type EventPublisher interface {
@@ -34,13 +37,18 @@ type EventPublisher interface {
 
 // Publisher to send events to northbound services
 type EdgeXEventPublisher struct {
-	protocol int
+	protocol MQPublisherType
 	zmq      MQClient
 }
 
-func NewMQPublisher(addrPort string) EventPublisher {
-	conf := zeroMQConfiguration{ AddressPort:addrPort }
-	p := &EdgeXEventPublisher{protocol: ZEROMQ, zmq: newZeroMQEventPublisher(conf)}
+func NewMQPublisher(addrPort string, pubType MQPublisherType) EventPublisher {
+	var p EventPublisher
+	if pubType == MOCK {
+		p = &mocks.MockEventPublisher{}
+	} else {
+		conf := zeroMQConfiguration{AddressPort: addrPort}
+		p = &EdgeXEventPublisher{protocol: pubType, zmq: newZeroMQEventPublisher(conf)}
+	}
 	CurrentPublisher = p
 	return p
 }

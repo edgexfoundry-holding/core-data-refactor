@@ -31,6 +31,7 @@ type MockParams struct {
 	EventAgeInTicks int64
 	Origin int64
 	ReadingName string
+	ValueDescriptorName string
 }
 
 var mockParams *MockParams
@@ -47,7 +48,8 @@ func init() {
 		DeviceName:"Test Device",
 		EventAgeInTicks:1257894000,
 		Origin:123456789,
-	    ReadingName:"Temperature"}
+	    ReadingName:"Temperature",
+		ValueDescriptorName:"Temperature"}
 }
 
 type MockDb struct {
@@ -71,7 +73,7 @@ func (mc *MockDb) Events() ([]models.Event, error) {
 }
 
 func (mc *MockDb) AddEvent(e *models.Event) (bson.ObjectId, error){
-	return bson.NewObjectId(), nil
+	return e.ID, nil
 }
 
 func (mc *MockDb) UpdateEvent(e models.Event) error {
@@ -187,7 +189,7 @@ func (mc *MockDb) ScrubAllEvents() error {
 }
 
 func (mc *MockDb) Readings() ([]models.Reading, error) {
-	return []models.Reading{}, nil
+	return buildListOfMockReadings(), nil
 }
 
 func (mc *MockDb) UpdateReading(r models.Reading) error {
@@ -239,7 +241,7 @@ func (mc *MockDb) DeleteValueDescriptorById(id string) error {
 }
 
 func (mc *MockDb) ValueDescriptorByName(name string) (models.ValueDescriptor, error) {
-	return models.ValueDescriptor{}, nil
+	return buildValueDescriptor(), nil
 }
 
 func (mc *MockDb) ValueDescriptorsByName(names []string) ([]models.ValueDescriptor, error) {
@@ -247,9 +249,8 @@ func (mc *MockDb) ValueDescriptorsByName(names []string) ([]models.ValueDescript
 }
 
 func (mc *MockDb) ValueDescriptorById(id string) (models.ValueDescriptor, error) {
-	return models.ValueDescriptor{}, nil
+	return buildValueDescriptor(), nil
 }
-
 
 func (mc *MockDb) ValueDescriptorsByUomLabel(uomLabel string) ([]models.ValueDescriptor, error) {
 	return []models.ValueDescriptor{}, nil
@@ -285,4 +286,24 @@ func buildListOfMockReadings() []models.Reading {
 	readings := []models.Reading{}
 	readings = append(readings, r1, r2)
 	return readings
+}
+
+func buildValueDescriptor() models.ValueDescriptor {
+	ticks := time.Now().Unix()
+	v := models.ValueDescriptor{Id:bson.NewObjectId(),
+								Created:ticks,
+								Description:"test description",
+								Modified:ticks,
+								Origin:mockParams.Origin,
+								Name:mockParams.ValueDescriptorName,
+								Min:-70,
+								Max:140,
+								DefaultValue:32,
+								Type:"I",
+								UomLabel:"C",
+								Formatting:"%d",
+								Labels:[]string{"temp", "room temp"}}
+
+	return v
+
 }

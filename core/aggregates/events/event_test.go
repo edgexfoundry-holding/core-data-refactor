@@ -22,17 +22,21 @@ import (
 	"testing"
 
 	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients"
-	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients/mocks"
 	"github.com/edgexfoundry/edgex-go/core/data/clients"
 	"github.com/edgexfoundry/edgex-go/core/data/config"
 	"github.com/edgexfoundry/edgex-go/core/data/log"
+	"github.com/edgexfoundry/edgex-go/core/data/messaging"
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 	"github.com/edgexfoundry/edgex-go/support/logging-client"
 
-	"github.com/stretchr/testify/mock"
-	"gopkg.in/mgo.v2/bson"
-	"strconv"
 	"fmt"
+	"github.com/edgexfoundry/edgex-go/core/aggregates"
+	"time"
+	"sync"
+	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients/mocks"
+	"gopkg.in/mgo.v2/bson"
+	"github.com/stretchr/testify/mock"
+	"strconv"
 )
 
 var mockParams *clients.MockParams
@@ -41,6 +45,7 @@ func TestMain(m *testing.M) {
 	mockParams = clients.GetMockParams()
 	deviceClient = registerMockMethods()
 	_, _ = clients.NewDBClient(clients.DBConfiguration{DbType: clients.MOCK})
+	_ = messaging.NewMQPublisher("", messaging.MOCK)
 	log.Logger = logger.NewMockClient()
 	config.Configuration = &config.ConfigurationStruct{ MetaDataCheck:true}
 
@@ -321,6 +326,136 @@ func TestUpdateEventInvalidDeviceFailure(t *testing.T) {
 	}
 }
 
+func TestAddNewEvent(t *testing.T) {
+	getConfiguration().PersistData = true
+	event, _ := getDatabase().EventById(mockParams.EventId.Hex()) //using this as a factory
+	//wire up handlers to listen for device events
+	bitEvents := make([]bool, 2)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func(wait *sync.WaitGroup) {
+		until := time.Now().Add(250 * time.Millisecond) //Kill this goroutine after quarter second.
+		for time.Now().Before(until) {
+			select {
+				case evt := <- EventAggregateEvents:
+					switch evt.(type) {
+					case aggregates.DeviceLastReported:
+						fmt.Println("TestAddNewEvent aggregates.DeviceLastReported")
+						e := evt.(aggregates.DeviceLastReported)
+						if e.DeviceName != mockParams.DeviceName {
+							t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
+							return
+						}
+						bitEvents = setEventBit(0, true, bitEvents)
+						break;
+					case aggregates.DeviceServiceLastReported:
+						fmt.Println("TestAddNewEvent aggregates.DeviceServiceLastReported")
+						e := evt.(aggregates.DeviceServiceLastReported)
+						if e.DeviceName != mockParams.DeviceName {
+							t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
+							return
+						}
+						bitEvents = setEventBit(1, true, bitEvents)
+						break;
+					}
+					default:
+					//	Without a default case in here, the wait group will hang.
+			}
+		}
+		wait.Done()
+	}(&wg)
+
+	id, err := AddNewEvent(event)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if id != event.ID.Hex() {
+		t.Errorf("mismatched ID after save %s, expected %s", id, event.ID.Hex())
+		return
+	}
+
+	wg.Wait()
+	for i, val := range bitEvents {
+		if !val {
+			t.Errorf("event not received in timely fashion, index %v", i)
+			return
+		}
+	}
+}
+
+func TestAddNewEventWithoutPersistence(t *testing.T) {
+	getConfiguration().PersistData = false
+	event, _ := getDatabase().EventById(mockParams.EventId.Hex()) //using this as a factory
+	//wire up handlers to listen for device events
+	bitEvents := make([]bool, 2)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func(wait *sync.WaitGroup) {
+		until := time.Now().Add(250 * time.Millisecond) //Kill this goroutine after quarter second.
+		for time.Now().Before(until) {
+			select {
+			case evt := <- EventAggregateEvents:
+				switch evt.(type) {
+				case aggregates.DeviceLastReported:
+					fmt.Println("TestAddNewEventWithoutPersistence aggregates.DeviceLastReported")
+					e := evt.(aggregates.DeviceLastReported)
+					if e.DeviceName != mockParams.DeviceName {
+						t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
+						return
+					}
+					bitEvents = setEventBit(0, true, bitEvents)
+					break;
+				case aggregates.DeviceServiceLastReported:
+					fmt.Println("TestAddNewEventWithoutPersistence aggregates.DeviceServiceLastReported")
+					e := evt.(aggregates.DeviceServiceLastReported)
+					if e.DeviceName != mockParams.DeviceName {
+						t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
+						return
+					}
+					bitEvents = setEventBit(1, true, bitEvents)
+					break;
+				}
+			default:
+				//	Without a default case in here, the wait group will hang.
+			}
+		}
+		wait.Done()
+	}(&wg)
+
+	id, err := AddNewEvent(event)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if id != "unsaved" {
+		t.Errorf("mismatched ID after save %s, expected %s", id, "unsaved")
+		return
+	}
+
+	wg.Wait()
+	for i, val := range bitEvents {
+		if !val {
+			t.Errorf("event not received in timely fashion, index %v", i)
+			return
+		}
+	}
+}
+
+func setEventBit(index int, value bool, source []bool) []bool {
+	bits := make([]bool, 2)
+	for i, oldVal := range source {
+		if i == index {
+			bits[i] = value
+		} else {
+			bits[i] = oldVal
+		}
+	}
+	return bits
+}
+
 func registerMockMethods() metadataclients.DeviceClient {
 	client := &mocks.MockDeviceClient{}
 
@@ -354,10 +489,6 @@ func registerMockMethods() metadataclients.DeviceClient {
 	client.On("DeviceForName", mock.MatchedBy(func(name string) bool {
 		return name != mockParams.DeviceName
 	})).Return(mockDeviceForNameResultFn, fmt.Errorf("no device found for name"))
-
-
-
-
 
 	return client
 }

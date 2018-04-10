@@ -75,7 +75,7 @@ func Init(conf *config.ConfigurationStruct, l logger.LoggingClient) error {
 	}
 
 	// Create the event publisher
-	_ = messaging.NewMQPublisher(conf.ZeroMQAddressPort)
+	_ = messaging.NewMQPublisher(conf.ZeroMQAddressPort, messaging.ZEROMQ)
 
 	return nil
 }
