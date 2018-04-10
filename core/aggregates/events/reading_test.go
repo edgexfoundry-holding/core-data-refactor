@@ -19,7 +19,6 @@ package events
 
 import (
 	"testing"
-	"fmt"
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -32,7 +31,7 @@ func TestGetAllReadings(t *testing.T) {
 	}
 
 	if len(readings) == 0 {
-		fmt.Errorf("zero readings returned, expected at least 1")
+		t.Errorf("zero readings returned, expected at least 1")
 	}
 }
 
@@ -74,5 +73,206 @@ func TestAddNewReadingInvalidDeviceFailure(t *testing.T) {
 		t.Error("error should have been thrown")
 		return
 	}
+}
 
+func TestCountReadings(t *testing.T) {
+	count, err := CountReadings()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if count <= 0 {
+		t.Errorf("unexpected value returned %v", count)
+	}
+}
+
+func TestDeleteReadingById(t *testing.T) {
+	id := bson.NewObjectId().Hex()
+	err := DeleteEventById(id)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+}
+
+func TestGetReadingsByCreateTime(t *testing.T){
+	getConfiguration().ReadMaxLimit = 3
+	readings, err := GetReadingsByCreateTime(mockParams.EventAgeInTicks, mockParams.EventAgeInTicks + 10, 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if len(readings) != 2 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetReadingsByCreateTimeLimit1(t *testing.T){
+	getConfiguration().ReadMaxLimit = 1
+	readings, err := GetReadingsByCreateTime(mockParams.EventAgeInTicks, mockParams.EventAgeInTicks + 10, 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if len(readings) != 1 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetEventsByDevice(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 3
+	readings, err := GetReadingsByDevice(mockParams.DeviceName, 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 2 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetEventsByDeviceLimit1(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 1
+	readings, err := GetReadingsByDevice(mockParams.DeviceName, 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 1 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetEventsByInvalidDeviceFailure(t *testing.T) {
+	_, err := GetReadingsByDevice("something random", 2)
+	if err == nil {
+		t.Error("error should have been thrown")
+		return
+	}
+}
+
+func TestGetReadingById(t *testing.T) {
+	id := bson.NewObjectId().Hex()
+	reading, err := GetReadingById(id)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	if id != reading.Id.Hex() {
+		t.Errorf("mismatched reading returned, expected %s got %s", id, reading.Id.Hex())
+	}
+}
+
+func TestGetReadingsByType(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 3
+	readings, err := GetReadingsByType(mockParams.ValueDescriptorName, 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 2 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetReadingsByTypeLimit1(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 1
+	readings, err := GetReadingsByType(mockParams.ValueDescriptorName, 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 1 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetReadingsByUomLabel(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 3
+	readings, err := GetReadingsByUomLabel("C", 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 2 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetReadingsByUomLabelLimit1(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 1
+	readings, err := GetReadingsByUomLabel("C", 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 1 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetReadingsByValueDescriptor(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 3
+	readings, err := GetReadingsByValueDescriptor(mockParams.ValueDescriptorName, 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 2 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetReadingsByValueDescriptorLimit1(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 1
+	readings, err := GetReadingsByValueDescriptor(mockParams.ValueDescriptorName, 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 1 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetReadingsByValueDescriptorLabel(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 3
+	readings, err := GetReadingsByValueDescriptorLabel("temp", 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 2 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestGetReadingsByValueDescriptorLabelLimit1(t *testing.T) {
+	getConfiguration().ReadMaxLimit = 1
+	readings, err := GetReadingsByValueDescriptorLabel("temp", 2)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	if len(readings) != 1 {
+		t.Errorf("unexpected reading count, received %v", len(readings))
+	}
+}
+
+func TestUpdateReading(t *testing.T) {
+	reading, err := getDatabase().ReadingById(mockParams.EventId.Hex()) //using this as a factory
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	err = UpdateReading(reading)
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
 }

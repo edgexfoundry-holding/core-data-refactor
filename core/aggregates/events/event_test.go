@@ -333,37 +333,7 @@ func TestAddNewEvent(t *testing.T) {
 	bitEvents := make([]bool, 2)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go func(wait *sync.WaitGroup) {
-		until := time.Now().Add(250 * time.Millisecond) //Kill this goroutine after quarter second.
-		for time.Now().Before(until) {
-			select {
-				case evt := <- EventAggregateEvents:
-					switch evt.(type) {
-					case aggregates.DeviceLastReported:
-						fmt.Println("TestAddNewEvent aggregates.DeviceLastReported")
-						e := evt.(aggregates.DeviceLastReported)
-						if e.DeviceName != mockParams.DeviceName {
-							t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
-							return
-						}
-						bitEvents = setEventBit(0, true, bitEvents)
-						break;
-					case aggregates.DeviceServiceLastReported:
-						fmt.Println("TestAddNewEvent aggregates.DeviceServiceLastReported")
-						e := evt.(aggregates.DeviceServiceLastReported)
-						if e.DeviceName != mockParams.DeviceName {
-							t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
-							return
-						}
-						bitEvents = setEventBit(1, true, bitEvents)
-						break;
-					}
-					default:
-					//	Without a default case in here, the wait group will hang.
-			}
-		}
-		wait.Done()
-	}(&wg)
+	go handleDomainEvents(bitEvents, &wg, t)
 
 	id, err := AddNewEvent(event)
 	if err != nil {
@@ -392,37 +362,7 @@ func TestAddNewEventWithoutPersistence(t *testing.T) {
 	bitEvents := make([]bool, 2)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go func(wait *sync.WaitGroup) {
-		until := time.Now().Add(250 * time.Millisecond) //Kill this goroutine after quarter second.
-		for time.Now().Before(until) {
-			select {
-			case evt := <- EventAggregateEvents:
-				switch evt.(type) {
-				case aggregates.DeviceLastReported:
-					fmt.Println("TestAddNewEventWithoutPersistence aggregates.DeviceLastReported")
-					e := evt.(aggregates.DeviceLastReported)
-					if e.DeviceName != mockParams.DeviceName {
-						t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
-						return
-					}
-					bitEvents = setEventBit(0, true, bitEvents)
-					break;
-				case aggregates.DeviceServiceLastReported:
-					fmt.Println("TestAddNewEventWithoutPersistence aggregates.DeviceServiceLastReported")
-					e := evt.(aggregates.DeviceServiceLastReported)
-					if e.DeviceName != mockParams.DeviceName {
-						t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
-						return
-					}
-					bitEvents = setEventBit(1, true, bitEvents)
-					break;
-				}
-			default:
-				//	Without a default case in here, the wait group will hang.
-			}
-		}
-		wait.Done()
-	}(&wg)
+	go handleDomainEvents(bitEvents, &wg, t)
 
 	id, err := AddNewEvent(event)
 	if err != nil {
@@ -444,16 +384,46 @@ func TestAddNewEventWithoutPersistence(t *testing.T) {
 	}
 }
 
-func setEventBit(index int, value bool, source []bool) []bool {
-	bits := make([]bool, 2)
+func handleDomainEvents(bitEvents []bool, wait *sync.WaitGroup, t *testing.T) {
+		until := time.Now().Add(250 * time.Millisecond) //Kill this loop after quarter second.
+		for time.Now().Before(until) {
+			select {
+			case evt := <- EventAggregateEvents:
+				switch evt.(type) {
+				case aggregates.DeviceLastReported:
+					fmt.Println("TestAddNewEventWithoutPersistence aggregates.DeviceLastReported")
+					e := evt.(aggregates.DeviceLastReported)
+					if e.DeviceName != mockParams.DeviceName {
+						t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
+						return
+					}
+					setEventBit(0, true, bitEvents)
+					break;
+				case aggregates.DeviceServiceLastReported:
+					fmt.Println("TestAddNewEventWithoutPersistence aggregates.DeviceServiceLastReported")
+					e := evt.(aggregates.DeviceServiceLastReported)
+					if e.DeviceName != mockParams.DeviceName {
+						t.Errorf("DeviceLastReported name mistmatch %s", e.DeviceName)
+						return
+					}
+					setEventBit(1, true, bitEvents)
+					break;
+				}
+			default:
+				//	Without a default case in here, the select block will hang.
+			}
+		}
+		wait.Done()
+}
+
+func setEventBit(index int, value bool, source []bool) {
 	for i, oldVal := range source {
 		if i == index {
-			bits[i] = value
+			source[i] = value
 		} else {
-			bits[i] = oldVal
+			source[i] = oldVal
 		}
 	}
-	return bits
 }
 
 func registerMockMethods() metadataclients.DeviceClient {
