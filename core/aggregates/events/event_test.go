@@ -18,10 +18,16 @@
 package events
 
 import (
+	"fmt"
 	"os"
+	"strconv"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/edgexfoundry/edgex-go/core/aggregates"
 	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients"
+	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients/mocks"
 	"github.com/edgexfoundry/edgex-go/core/data/clients"
 	"github.com/edgexfoundry/edgex-go/core/data/config"
 	"github.com/edgexfoundry/edgex-go/core/data/log"
@@ -29,14 +35,8 @@ import (
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 	"github.com/edgexfoundry/edgex-go/support/logging-client"
 
-	"fmt"
-	"github.com/edgexfoundry/edgex-go/core/aggregates"
-	"time"
-	"sync"
-	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients/mocks"
-	"gopkg.in/mgo.v2/bson"
 	"github.com/stretchr/testify/mock"
-	"strconv"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var mockParams *clients.MockParams

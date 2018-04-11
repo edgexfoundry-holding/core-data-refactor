@@ -32,6 +32,7 @@ type MockParams struct {
 	Origin int64
 	ReadingName string
 	ValueDescriptorName string
+	NoReadingsKey string
 }
 
 var mockParams *MockParams
@@ -49,7 +50,8 @@ func init() {
 		EventAgeInTicks:1257894000,
 		Origin:123456789,
 	    ReadingName:"Temperature",
-		ValueDescriptorName:"Temperature"}
+		ValueDescriptorName:"Temperature",
+		NoReadingsKey:"no_readings"}
 }
 
 type MockDb struct {
@@ -218,7 +220,10 @@ func (mc *MockDb) ReadingsByDevice(id string, limit int) ([]models.Reading, erro
 }
 
 func (mc *MockDb) ReadingsByValueDescriptor(name string, limit int) ([]models.Reading, error) {
-	return buildListOfMockReadingsWithLimit(limit), nil
+	if name != mockParams.NoReadingsKey {
+		return buildListOfMockReadingsWithLimit(limit), nil
+	}
+	return []models.Reading{}, nil
 }
 
 func (mc *MockDb) ReadingsByValueDescriptorNames(names []string, limit int) ([]models.Reading, error) {
@@ -230,11 +235,11 @@ func (mc *MockDb) ReadingsByCreationTime(start, end int64, limit int) ([]models.
 }
 
 func (mc *MockDb) AddValueDescriptor(v models.ValueDescriptor) (bson.ObjectId, error) {
-	return bson.NewObjectId(), nil
+	return v.Id, nil
 }
 
 func (mc *MockDb) ValueDescriptors() ([]models.ValueDescriptor, error) {
-	return []models.ValueDescriptor{}, nil
+	return buildListofMockValueDescritors(), nil
 }
 
 func (mc *MockDb) UpdateValueDescriptor(v models.ValueDescriptor) error {
@@ -254,7 +259,13 @@ func (mc *MockDb) ValueDescriptorsByName(names []string) ([]models.ValueDescript
 }
 
 func (mc *MockDb) ValueDescriptorById(id string) (models.ValueDescriptor, error) {
-	return buildValueDescriptor(), nil
+	val := buildValueDescriptor()
+	if id != mockParams.NoReadingsKey {
+		val.Id = bson.ObjectIdHex(id)
+	} else {
+		val.Name = mockParams.NoReadingsKey
+	}
+	return val, nil
 }
 
 func (mc *MockDb) ValueDescriptorsByUomLabel(uomLabel string) ([]models.ValueDescriptor, error) {

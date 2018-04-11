@@ -16,7 +16,7 @@ import (
 	"github.com/edgexfoundry/edgex-go/core/domain/models"
 )
 
-func isValidValueDescriptor_private(vd models.ValueDescriptor, ev models.Event) (bool, error) {
+func validateDataType(vd models.ValueDescriptor, ev models.Event) (bool, error) {
 	switch vd.Type {
 	case "B": // boolean
 		return validBoolean(ev)
@@ -35,7 +35,7 @@ func isValidValueDescriptor_private(vd models.ValueDescriptor, ev models.Event) 
 
 func isValidValueDescriptor(reading models.Reading, ev models.Event) (bool, error) {
 	vd, _ := clients.CurrentClient.ValueDescriptorByName(reading.Name)
-	return isValidValueDescriptor_private(vd, ev)
+	return validateDataType(vd, ev)
 }
 
 func validBoolean(ev models.Event) (bool, error) {

@@ -239,7 +239,7 @@ func TestIsValidValueDescriptor_private(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.value, func(t *testing.T) {
 			tvd := models.ValueDescriptor{Type: tt.value}
-			_, err := isValidValueDescriptor_private(tvd, models.Event{})
+			_, err := validateDataType(tvd, models.Event{})
 			if err != nil {
 				if !tt.err {
 					t.Errorf("There should not be an error: %v", err)
