@@ -56,12 +56,9 @@ func ConnectToConsul(conf config.ConfigurationStruct) error {
 func Init(conf *config.ConfigurationStruct, l logger.LoggingClient) error {
 	log.Logger = l
 	config.Configuration = conf
-	//TODO: The above two are set due to global scope throughout the package. How can this be eliminated / refactored?
-
-	var err error
 	
 	// Create a database client
-	_, err = clients.NewDBClient(clients.DBConfiguration{
+	_, err := clients.NewDBClient(clients.DBConfiguration{
 		DbType:       clients.MONGO,
 		Host:         conf.MongoDBHost,
 		Port:         conf.MongoDBPort,

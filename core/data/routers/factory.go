@@ -19,9 +19,10 @@
 package routers
 
 import (
+	"fmt"
+
 	"github.com/edgexfoundry/edgex-go/routing"
 	"github.com/gorilla/mux"
-	"fmt"
 )
 
 type routerType int
