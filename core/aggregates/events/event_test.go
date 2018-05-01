@@ -26,8 +26,7 @@ import (
 	"time"
 
 	"github.com/edgexfoundry/edgex-go/core/aggregates"
-	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients"
-	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients/mocks"
+	"github.com/edgexfoundry/edgex-go/core/aggregates/events/mocks"
 	"github.com/edgexfoundry/edgex-go/core/data/clients"
 	"github.com/edgexfoundry/edgex-go/core/data/config"
 	"github.com/edgexfoundry/edgex-go/core/data/log"
@@ -43,7 +42,7 @@ var mockParams *clients.MockParams
 
 func TestMain(m *testing.M) {
 	mockParams = clients.GetMockParams()
-	deviceClient = registerMockMethods()
+	dc = registerMockMethods()
 	_, _ = clients.NewDBClient(clients.DBConfiguration{DbType: clients.MOCK})
 	_ = messaging.NewMQPublisher("", messaging.MOCK)
 	log.Logger = logger.NewMockClient()
@@ -426,8 +425,8 @@ func setEventBit(index int, value bool, source []bool) {
 	}
 }
 
-func registerMockMethods() metadataclients.DeviceClient {
-	client := &mocks.MockDeviceClient{}
+func registerMockMethods() deviceClient {
+	client := &mocks.DeviceClient{}
 
 	mockAddressable := models.Addressable{
 		Address: "localhost",

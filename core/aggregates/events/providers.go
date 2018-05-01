@@ -23,11 +23,12 @@ import (
 	"github.com/edgexfoundry/edgex-go/core/data/config"
 	"github.com/edgexfoundry/edgex-go/core/data/log"
 	"github.com/edgexfoundry/edgex-go/core/data/messaging"
+	"github.com/edgexfoundry/edgex-go/core/domain/models"
 	"github.com/edgexfoundry/edgex-go/support/logging-client"
 )
 
 //Only set this manually when providing a mock for unit testing
-var deviceClient metadataclients.DeviceClient
+var dc deviceClient
 
 var EventAggregateEvents chan interface{}
 
@@ -37,11 +38,11 @@ func init() {
 	}
 }
 
-func getDeviceClient() metadataclients.DeviceClient {
-	if deviceClient == nil { //We check here in case a mock was supplied.
-		deviceClient = metadataclients.GetDeviceClient()
+func getDeviceClient() deviceClient {
+	if dc == nil { //We check here in case a mock was supplied.
+		dc = metadataclients.GetDeviceClient()
 	}
-	return deviceClient
+	return dc
 }
 
 func getConfiguration() *config.ConfigurationStruct {
@@ -58,4 +59,9 @@ func getLogger() logger.LoggingClient {
 
 func getMQPublisher() messaging.EventPublisher {
 	return messaging.CurrentPublisher
+}
+
+type deviceClient interface {
+	Device(id string) (models.Device, error)
+	DeviceForName(name string) (models.Device, error)
 }
