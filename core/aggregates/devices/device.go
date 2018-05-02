@@ -22,37 +22,8 @@ import (
 
 	"github.com/edgexfoundry/edgex-go/core/aggregates"
 	"github.com/edgexfoundry/edgex-go/core/aggregates/events"
-	"github.com/edgexfoundry/edgex-go/core/clients/metadataclients"
-	"github.com/edgexfoundry/edgex-go/core/data/config"
-	"github.com/edgexfoundry/edgex-go/core/data/clients"
-	"github.com/edgexfoundry/edgex-go/core/data/log"
-	"github.com/edgexfoundry/edgex-go/core/data/messaging"
-	"github.com/edgexfoundry/edgex-go/support/logging-client"
+	"fmt"
 )
-
-func getConfiguration() *config.ConfigurationStruct {
-	return config.Configuration
-}
-
-func getDatabase() clients.DBClient {
-	return clients.CurrentClient
-}
-
-func getDeviceClient() metadataclients.DeviceClient {
-	return metadataclients.GetDeviceClient()
-}
-
-func getServiceClient() metadataclients.ServiceClient {
-	return metadataclients.GetServiceClient()
-}
-
-func getLogger() logger.LoggingClient {
-	return log.Logger
-}
-
-func getMQPublisher() messaging.EventPublisher {
-	return messaging.CurrentPublisher
-}
 
 func init() {
 	go func() {
@@ -70,11 +41,12 @@ func init() {
 	}()
 }
 
-func updateDeviceLastReportedConnected(device string) {
+func updateDeviceLastReportedConnected(device string) error {
 	// Config set to skip update last reported
 	if !getConfiguration().DeviceUpdateLastConnected {
-		getLogger().Debug("Skipping update of device connected/reported times for:  " + device)
-		return
+		err := fmt.Errorf("Skipping update of device connected/reported times for:  %s", device)
+		getLogger().Debug(err.Error())
+		return err
 	}
 
 	t := time.Now().UnixNano() / int64(time.Millisecond)
@@ -82,55 +54,63 @@ func updateDeviceLastReportedConnected(device string) {
 	// Get the device by name
 	d, err := getDeviceClient().DeviceForName(device)
 	if err != nil {
-		getLogger().Error("Error getting device " + device + ": " + err.Error())
-		return
+		msg := fmt.Sprintf("error getting device by name %s: %v", device, err)
+		getLogger().Error(msg)
 	}
 
 	// Couldn't find by name
-	if &d == nil {
+	if len(d.Name) == 0 {
 		// Get the device by ID
 		d, err = getDeviceClient().Device(device)
 		if err != nil {
-			getLogger().Error("Error getting device " + device + ": " + err.Error())
-			return
+			msg := fmt.Sprintf("Error getting device %s: %v", device, err)
+			getLogger().Error(msg)
+			return err
 		}
 
 		// Couldn't find device
-		if &d == nil {
-			getLogger().Error("Error updating device connected/reported times.  Unknown device with identifier of:  " + device)
-			return
+		if len(d.Name) == 0 {
+			msg := fmt.Sprintf("Error updating device connected/reported times. Unknown device with identifier of: %s", device)
+			getLogger().Error(msg)
+			return err
 		}
 
 		// Got device by ID, now update lastReported/Connected by ID
 		err = getDeviceClient().UpdateLastConnected(d.Id.Hex(), t)
 		if err != nil {
-			getLogger().Error("Problems updating last connected value for device: " + d.Id.Hex())
-			return
+			msg := fmt.Sprintf("Problems updating last connected value for device: %s", d.Id.Hex())
+			getLogger().Error(msg)
+			return err
 		}
 		err = getDeviceClient().UpdateLastReported(d.Id.Hex(), t)
 		if err != nil {
-			getLogger().Error("Problems updating last reported value for device: " + d.Id.Hex())
+			msg := fmt.Sprintf("Problems updating last reported value for device: %s", d.Id.Hex())
+			getLogger().Error(msg)
+			return err
 		}
-		return
 	}
 
 	// Found by name, now update lastReported
 	err = getDeviceClient().UpdateLastConnectedByName(d.Name, t)
 	if err != nil {
-		getLogger().Error("Problems updating last connected value for device: " + d.Name)
-		return
+		msg := fmt.Sprintf("Problems updating last connected value for device: %s", d.Name)
+		getLogger().Error(msg)
+		return err
 	}
 	err = getDeviceClient().UpdateLastReportedByName(d.Name, t)
 	if err != nil {
-		getLogger().Error("Problems updating last reported value for device: " + d.Name)
+		msg := fmt.Sprintf("Problems updating last reported value for device: %s", d.Name)
+		getLogger().Error(msg)
+		return err
 	}
-	return
+	return nil
 }
 
-func updateDeviceServiceLastReportedConnected(device string) {
+func updateDeviceServiceLastReportedConnected(device string) error {
 	if !getConfiguration().ServiceUpdateLastConnected {
-		getLogger().Debug("Skipping update of device service connected/reported times for:  " + device)
-		return
+		err := fmt.Errorf("Skipping update of device service connected/reported times for:  " + device)
+		getLogger().Error(err.Error())
+		return err
 	}
 
 	t := time.Now().UnixNano() / int64(time.Millisecond)
@@ -138,31 +118,45 @@ func updateDeviceServiceLastReportedConnected(device string) {
 	// Get the device
 	d, err := getDeviceClient().DeviceForName(device)
 	if err != nil {
-		getLogger().Error("Error getting device " + device + ": " + err.Error())
-		return
+		msg := fmt.Sprintf("Error getting device %s: %v", device, err.Error())
+		getLogger().Error(msg)
 	}
 
 	// Couldn't find by name
-	if &d == nil {
+	if len(d.Name) == 0 {
 		d, err = getDeviceClient().Device(device)
 		if err != nil {
-			getLogger().Error("Error getting device " + device + ": " + err.Error())
-			return
+			msg := fmt.Sprintf("Error getting device %s: %v", device, err.Error())
+			getLogger().Error(msg)
+			return err
 		}
 		// Couldn't find device
-		if &d == nil {
-			getLogger().Error("Error updating device connected/reported times.  Unknown device with identifier of:  " + device)
-			return
+		if len(d.Name) == 0 {
+			msg := fmt.Sprintf("Error updating device connected/reported times.  Unknown device with identifier of: %s", device)
+			getLogger().Error(msg)
+			return err
 		}
 	}
 
 	// Get the device service
 	s := d.Service
 	if &s == nil {
-		getLogger().Error("Error updating device service connected/reported times.  Unknown device service in device:  " + d.Id.Hex())
-		return
+		msg := fmt.Sprintf("Error updating device service connected/reported times.  Unknown device service in device: %s", d.Id.Hex())
+		getLogger().Error(msg)
+		return err
 	}
 
-	getServiceClient().UpdateLastConnected(s.Service.Id.Hex(), t)
-	getServiceClient().UpdateLastReported(s.Service.Id.Hex(), t)
+	err = getServiceClient().UpdateLastConnected(s.Service.Id.Hex(), t)
+	if err != nil {
+		msg := fmt.Sprintf("error updating service connection %s: %v", s.Service.Id.Hex(), err.Error())
+		getLogger().Error(msg)
+		return err
+	}
+	err = getServiceClient().UpdateLastReported(s.Service.Id.Hex(), t)
+	if err != nil {
+		msg := fmt.Sprintf("error updating service reported %s: %v", s.Service.Id.Hex(), err.Error())
+		getLogger().Error(msg)
+		return err
+	}
+	return nil
 }

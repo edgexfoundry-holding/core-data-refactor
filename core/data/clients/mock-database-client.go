@@ -26,6 +26,7 @@ import (
 type MockParams struct {
 	DeviceId bson.ObjectId
 	EventId bson.ObjectId
+	ServiceId bson.ObjectId
 	EventCount int
 	DeviceName string
 	EventAgeInTicks int64
@@ -45,6 +46,7 @@ func init() {
 	mockParams = &MockParams{
 		DeviceId:bson.NewObjectId(),
 		EventId:bson.NewObjectId(),
+		ServiceId:bson.NewObjectId(),
 		EventCount:1,
 		DeviceName:"Test Device",
 		EventAgeInTicks:1257894000,
